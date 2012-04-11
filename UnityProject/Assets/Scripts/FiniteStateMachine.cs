@@ -1,10 +1,6 @@
-﻿/*
- * Prints state changes
- * ALL - all state changes (player, enemies, girl)
- * PLAYER - only player
- */
-//#define DEBUG_STATES_ALL
-//#define DEBUG_STATES_PLAYER
+﻿// FiniteStateMachine.cs
+
+// Manages different states for one type T of objects.
 
 using UnityEngine;
 using System;
@@ -68,16 +64,6 @@ public class FiniteStateMachine<T>
 	{
         if (NewState == CurrentState && !forceChange) 
             return false;
-
-#if DEBUG_STATES_ALL
-        Debug.Log("FSM(" + typeof(T) + "):Change State " + CurrentState + " to " + NewState);
-#endif
-#if DEBUG_STATES_PLAYER
-        if (typeof(T) == typeof(PlayerController))
-        {
-            Debug.Log("FSM(PlayerController): Change State " + CurrentState + " to " + NewState + "\n" + Environment.StackTrace);
-        }
-#endif
 
 		PreviousState = CurrentState;
 		CurrentState = NewState;

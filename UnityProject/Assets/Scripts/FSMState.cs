@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿// FSMState.cs
+
+using UnityEngine;
 
 abstract public class FSMState<T> : ScriptableObject
 {

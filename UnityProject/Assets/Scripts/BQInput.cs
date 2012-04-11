@@ -1,10 +1,12 @@
+// BQInput.cs
+
 using UnityEngine;
 using System;
 
 /// <summary>
 /// manages the different input devices
 /// the class is namend BQInput to avoid confusions with the input-class of the unityengine
-/// BQ is an abbreviation for barbequeue
+/// BQ is an abbreviation for BalloonQuest
 /// </summary>
 public static class BQInput
 {

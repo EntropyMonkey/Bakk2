@@ -1,13 +1,10 @@
-// Messenger.cs v0.1 (20090925) by Rod Hyde (badlydrawnrod).
+// Messenger.cs based on Messenger.cs v0.1 (20090925) by Rod Hyde (badlydrawnrod).
 
 //
 // This is a C# messenger (notification center) for Unity. It uses delegates
 // and generics to provide type-checked messaging between event producers and
 // event consumers, without the need for producers or consumers to be aware of
 // each other.
-
-// prints all events which are fired
-//#define DEBUG_EVENTS_ALL
 
 using System;
 using System.Collections.Generic;
