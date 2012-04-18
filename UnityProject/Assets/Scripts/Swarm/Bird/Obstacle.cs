@@ -6,11 +6,16 @@ using System.Collections;
 /// </summary>
 public class Obstacle : MonoBehaviour, IOfferInformation<BirdInformation> 
 {
-    public BirdInformation Information { get; set; }
+    public BirdInformation Information
+    {
+        get;
+        set;
+    }
 
 	// Use this for initialization
-	void Start () {
-	
+	void Start () 
+    {
+        gameObject.tag = GlobalNames.Tags.IOfferInformation;
 	}
 	
 	// Update is called once per frame

@@ -4,7 +4,7 @@ using UnityEngine;
 using System.Collections;
 
 /// <summary>
-/// A bird can only hold specific information.
+/// A bird can only handle specific information.
 /// </summary>
 public class BirdInformation : IInformation 
 {
