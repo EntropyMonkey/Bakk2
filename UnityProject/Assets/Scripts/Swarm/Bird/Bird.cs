@@ -28,9 +28,9 @@ public class Bird : Agent<BirdInformation> {
     public Dictionary<string, float> Stats;
 
     /// <summary>
-    /// A list of all visible objects
+    /// All currently visible birds are stored here
     /// </summary>
-    public List<Transform> VisibleObjects { get; private set; }
+    public List<Transform> Neighbors;
 
 	void Start ()
     {
@@ -44,12 +44,16 @@ public class Bird : Agent<BirdInformation> {
         FSM.Configure(this, stateIdle, stateGlobal);
 
         // initialize needs
+        Needs = new Dictionary<string, float>();
         Needs.Add(GlobalNames.Needs.Food, 0.0f);
         Needs.Add(GlobalNames.Needs.Information, 1.0f);
 
         // initialize stats
+        Stats = new Dictionary<string, float>();
         Stats.Add(GlobalNames.Stats.Saturation, 1.0f);
         Stats.Add(GlobalNames.Stats.Information, 0.0f);
+
+        gameObject.tag = GlobalNames.Tags.Bird;
 	}
 	
 	void Update () 
@@ -64,5 +68,9 @@ public class Bird : Agent<BirdInformation> {
     public void ChangeState(FSMState<Bird> state)
     {
         FSM.ChangeState(state);
+    }
+
+    void OnCollisionEnter(Collision collision)
+    {
     }
 }

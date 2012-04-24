@@ -13,7 +13,7 @@ public class GlobalNames
     public class Tags
     {
         public const string IOfferInformation = "IOfferInformation";
-        public const string VisibleToBirds = "visibleToBirds";
+        public const string Bird = "Bird";
     }
 
     /// <summary>

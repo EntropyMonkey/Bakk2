@@ -8,5 +8,21 @@ using System.Collections;
 /// </summary>
 public class BirdInformation : IInformation 
 {
-    public float Timestamp { get; set; }
+    /// <summary>
+    /// When has this information first been gathered?
+    /// </summary>
+    public float FirstSeenTimestamp { get; set; }
+    /// <summary>
+    /// When has the current owner gathered this information?
+    /// </summary>
+    public float GatheredTimestamp { get; set; }
+
+    /// <summary>
+    /// The size of the food source
+    /// </summary>
+    public float FoodSourceSize { get; set; }
+    /// <summary>
+    /// The position of the food source
+    /// </summary>
+    public Vector3 FoodSourcePosition { get; set; }
 }
