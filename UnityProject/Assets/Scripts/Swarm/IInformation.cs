@@ -10,9 +10,9 @@ public interface IInformation {
     /// <summary>
     /// When has this information first been gathered?
     /// </summary>
-    float FirstSeenTimestamp { get; set; }
+    float firstSeenTimestamp { get; set; }
     /// <summary>
     /// When has the current owner gathered this information?
     /// </summary>
-    float GatheredTimestamp { get; set; }
+    float gatheredTimestamp { get; set; }
 }

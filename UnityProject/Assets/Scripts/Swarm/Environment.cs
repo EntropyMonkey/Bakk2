@@ -12,16 +12,12 @@ using System.Collections.Generic;
 public abstract class Environment<T> : MonoBehaviour where T : IInformation
 {    
     /// <summary>
-    /// A pool of agents which can be used.
+    /// All agents
     /// </summary>
-    public List<Agent<T>> Agents;
-    /// <summary>
-    /// a list of agents which are currently active
-    /// </summary>
-    public List<Agent<T>> ActiveAgents;
+    protected List<Agent<T>> agents;
 
     /// <summary>
     /// a list of objects in the environment which can give information of type T
     /// </summary>
-    public List<IOfferInformation<T>> InformationOwners;
+    protected List<IOfferInformation<T>> informationOwners;
 }

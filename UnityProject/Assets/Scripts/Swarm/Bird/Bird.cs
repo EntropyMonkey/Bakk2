@@ -16,7 +16,7 @@ public class Bird : Agent<BirdInformation> {
     private BirdStateGlobal stateGlobal;
     private BirdStateSearch stateSearch;
     private BirdStateCommunicate stateCommunicate;
-    private BirdStateIdle stateIdle;
+    private BirdStateEat stateEat;
 
     /// <summary>
     /// A dictionary holding all the needs an agent has
@@ -26,22 +26,33 @@ public class Bird : Agent<BirdInformation> {
     /// Current stats which influence the needs
     /// </summary>
     public Dictionary<string, float> Stats;
+    /// <summary>
+    /// The bird's configurations
+    /// </summary>
+    public static BirdSettings settings;
+    /// <summary>
+    /// the most important settings in this project: the communication settings.
+    /// They can be different for each bird (however, are only different for the three swarms)
+    /// </summary>
+    public BirdCommunicationSettings communicationSettings;
 
     /// <summary>
     /// All currently visible birds are stored here
     /// </summary>
     public List<Transform> Neighbors;
 
-	void Start ()
+    private float communicationTimer = 0;
+
+	private void Start ()
     {
         // initialize states
         stateGlobal = ScriptableObject.CreateInstance<BirdStateGlobal>();
-        stateIdle = ScriptableObject.CreateInstance<BirdStateIdle>();
+        stateEat = ScriptableObject.CreateInstance<BirdStateEat>();
         stateCommunicate = ScriptableObject.CreateInstance<BirdStateCommunicate>();
         stateSearch = ScriptableObject.CreateInstance<BirdStateSearch>();
 
         FSM = new FiniteStateMachine<Bird>();
-        FSM.Configure(this, stateIdle, stateGlobal);
+        FSM.Configure(this, stateSearch, stateGlobal);
 
         // initialize needs
         Needs = new Dictionary<string, float>();
@@ -56,13 +67,53 @@ public class Bird : Agent<BirdInformation> {
         gameObject.tag = GlobalNames.Tags.Bird;
 	}
 	
-	void Update () 
+	private void Update () 
     {
         FSM.Update();
+
+        UpdateSignificancyValues();
 	}
+
+    private void UpdateSignificancyValues()
+    {
+
+    }
 
     public override void GatherInformation(BirdInformation information)
     {
+        if (information != null && 
+            // only gather info if it is not yet in the list
+            Information.Find(
+            item => item.MeasureEquality(information) > communicationSettings.EqualityThreshold) == null)
+        {
+            BirdInformation newInfo = information.Copy();
+            newInfo.gatheredTimestamp = Time.time;
+
+            // gathering new information, no gossip, recall perfectly
+            if (newInfo.hops == -1)
+            {
+                newInfo.firstSeenTimestamp = Time.time;
+                newInfo.hops = 0;
+            }
+            else
+            {
+                newInfo.hops = information.hops + 1;
+            }
+
+            // calculate new certainty
+            float hopCertainty = 1 / (newInfo.hops / settings.maxHops);
+            float ageCertainty = 1 / (newInfo.age / settings.maxAge);
+            // hop and age certainty are equally weighted
+            newInfo.certainty = (hopCertainty + ageCertainty) * 0.5f; 
+
+            // calculate significancy and decide whether to store this info
+            float significancy = newInfo.certainty / communicationSettings.CertaintyThreshold;
+
+            if (significancy >= settings.significancyThreshold)
+            {
+                Information.Add(newInfo);
+            }
+        }
     }
 
     public void ChangeState(FSMState<Bird> state)
@@ -70,7 +121,49 @@ public class Bird : Agent<BirdInformation> {
         FSM.ChangeState(state);
     }
 
-    void OnCollisionEnter(Collision collision)
+    private void OnCollisionEnter(Collision collision)
     {
+    }
+
+    /// <summary>
+    /// Eats as much as possible regarding bird's food capacity and amount of food ready for disposal
+    /// </summary>
+    /// <param name="food">The food source</param>
+    public void Eat(Food food)
+    {
+        // does the bird want to eat?
+        if (Needs[GlobalNames.Needs.Food] > settings.eatingThreshold)
+        {
+            // eat until the bird is full
+            float meal = food.Eat((1.0f - Stats[GlobalNames.Stats.Saturation]) * settings.maxFoodCapacity);
+            Stats[GlobalNames.Stats.Saturation] += meal / settings.maxFoodCapacity;
+            GatherInformation(food.Information);
+        }
+    }
+
+    /// <summary>
+    /// Gets a random piece of information from the other bird
+    /// </summary>
+    /// <param name="bird">The communication partner</param>
+    public void Communicate(Bird bird)
+    {
+        communicationTimer -= Time.deltaTime;
+
+        // does the bird want to gain info?
+        if (communicationTimer <= 0.0f && 
+            Needs[GlobalNames.Needs.Information] > settings.informationThreshold)
+        {
+            communicationTimer = communicationSettings.Timeout;
+            GatherInformation(bird.AskForInformation());
+        }
+    }
+
+    // returns a random piece of information gathered by this bird
+    public BirdInformation AskForInformation()
+    {
+        if (Information.Count > 0)
+            return Information[Random.Range(0, Information.Count - 1)];
+        else
+            return null;
     }
 }
