@@ -25,15 +25,6 @@ public class GlobalNames
         public const string Information = "information";
     }
 
-    /// <summary>
-    /// The names for a bird's stats
-    /// </summary>
-    public class Stats
-    {
-        public const string Saturation = "saturation";
-        public const string Information = "information";
-    }
-
     public class Config
     {
         public const string FoodThreshold = "foodThreshold";

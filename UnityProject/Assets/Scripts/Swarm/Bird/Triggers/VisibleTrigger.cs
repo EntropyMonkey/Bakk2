@@ -3,6 +3,11 @@ using System.Collections;
 
 public class VisibleTrigger : BirdTrigger {
 
+    void Start()
+    {
+        base.Start();
+    }
+
     void OnTriggerEnter(Collider other)
     {
         // if it offers information, gather it

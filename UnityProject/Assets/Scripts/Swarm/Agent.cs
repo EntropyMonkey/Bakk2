@@ -14,7 +14,7 @@ public abstract class Agent<T> : MonoBehaviour where T : IInformation
     /// <summary>
     /// A list holding all the information an agent has gathered.
     /// </summary>
-    protected List<T> Information;
+    public List<T> Information;
 
     protected bool alive;
     /// <summary>

@@ -11,7 +11,7 @@ public struct BirdCommunicationSettings : IPropagationSettings
     /// <summary>
     /// How certain a piece of information must be to be seen as certain
     /// </summary>
-    public float CertaintyThreshold { get; set; }
+    public float certaintyThreshold { get; set; }
 
     /// <summary>
     /// How equal two pieces of information must be to be seen as equal

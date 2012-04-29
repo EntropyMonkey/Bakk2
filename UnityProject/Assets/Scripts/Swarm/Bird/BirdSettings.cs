@@ -9,7 +9,7 @@ public struct BirdSettings
     public int maxHops { get; set; }
 
     /// <summary>
-    /// The maximum age of a piece of information
+    /// The maximum age of a piece of information before it's forgotten
     /// </summary>
     public float maxAge { get; set; }
 
@@ -26,6 +26,10 @@ public struct BirdSettings
     /// When the need for eating reaches this value, the bird looks for information
     /// </summary>
     public float informationThreshold { get; set; }
+    /// <summary>
+    /// The information need is saturated per information
+    /// </summary>
+    public float informationNeedSaturationPerInfo { get; set; }
     
     /// <summary>
     /// when the significance of a piece of information reaches this threshold, it's stored

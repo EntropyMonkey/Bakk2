@@ -28,6 +28,7 @@ public class BirdEnvironment : Environment<BirdInformation>
             maxHops = 10,
             eatingThreshold = 0.5f,
             informationThreshold = 0.5f,
+            informationNeedSaturationPerInfo = 0.0f,
             maxFoodCapacity = 2.0f,
         };
 
@@ -48,6 +49,10 @@ public class BirdEnvironment : Environment<BirdInformation>
             maxScale = 10.0f,
             timeAlive = 6000.0f,
         };
+
+        // set the maximum difference two pieces of information about food can exhibit after having defined
+        // the settings
+        BirdInformation.UpdateMaxFoodVectorDifference();
 
         foodPool = new List<Food>(initialFood);
         distributedFood = new List<Food>();
@@ -86,10 +91,13 @@ public class BirdEnvironment : Environment<BirdInformation>
         }
     }
 
+    /// <summary>
+    /// Creating food for the pool
+    /// </summary>
     private Food CreateFood()
     {
-        Food newFood = (Instantiate(FoodPrefab, Vector3.zero, Quaternion.identity) as GameObject).
-            GetComponent<Food>();
+        Object instantiatedPrefab = Instantiate(FoodPrefab, Vector3.zero, Quaternion.identity);
+        Food newFood = (instantiatedPrefab as Transform).gameObject.GetComponent<Food>();
 
         newFood.gameObject.active = false;
         newFood.Environment = this;
@@ -99,6 +107,10 @@ public class BirdEnvironment : Environment<BirdInformation>
         return newFood;
     }
 
+    /// <summary>
+    /// Distributing food while taking into account already existing amount of food
+    /// </summary>
+    /// <param name="bounds"></param>
     private void DistributeFood(Bounds bounds)
     {
         Vector3 randomPosition = Vector3.zero;
@@ -121,10 +133,11 @@ public class BirdEnvironment : Environment<BirdInformation>
 
         // reset new free food
         freeFood.transform.position = randomPosition;
-        freeFood.gameObject.active = true;
         freeFood.AmountOfFood = Mathf.Min(
-            Random.Range(1, settings.maxDistributedAmountOfFood - currentDistributedAmountOfFood), 
+            Random.Range(1, settings.maxDistributedAmountOfFood - currentDistributedAmountOfFood),
             Food.settings.maxAmountOfFood);
+        // set active after initializing
+        freeFood.gameObject.active = true;
 
         currentDistributedAmountOfFood += freeFood.AmountOfFood;
         distributedFood.Add(freeFood);

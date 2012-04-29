@@ -21,6 +21,7 @@ public class Food : MonoBehaviour, IOfferInformation<BirdInformation>
         set
         {
             amountOfFood = value;
+            Information.foodSourceSize = value;
             Vector3 scale = Vector3.zero;
             scale.x = scale.y = scale.z = settings.maxScale * amountOfFood / settings.maxAmountOfFood;
             transform.localScale = scale;
@@ -29,7 +30,7 @@ public class Food : MonoBehaviour, IOfferInformation<BirdInformation>
 
     private float timeToLive;
 
-    private void Start()
+    private void Awake()
     {
         gameObject.tag = GlobalNames.Tags.IOfferInformation;
 
@@ -39,15 +40,23 @@ public class Food : MonoBehaviour, IOfferInformation<BirdInformation>
         // set information to be gathered
         Information = new BirdInformation
         {
+            // set when gathering information (only relevant when passing info bird <-> bird)
             firstSeenTimestamp = -1,
             gatheredTimestamp = -1,
             certainty = 1.0f,
             hops = -1,
 
+            // set in environment when disposing the food
             type = BirdInformation.BirdInformationType.FOOD,
-            foodSourcePosition = transform.position,
-            foodSourceSize = -1, // will be set in environment, because it keeps track of total amount of food
+            foodSourcePosition = Vector3.zero,
+            foodSourceSize = -1,
         };
+    }
+
+    private void Start()
+    {
+        // position is reset before start is called
+        Information.foodSourcePosition = transform.position;
     }
 
     private void Update()
@@ -61,6 +70,11 @@ public class Food : MonoBehaviour, IOfferInformation<BirdInformation>
     {
     }
 
+    /// <summary>
+    /// Called from the bird's interactive trigger
+    /// </summary>
+    /// <param name="requestedAmount">the amount of food the bird wants to eat</param>
+    /// <returns>the amount of food the source can provide</returns>
     public float Eat(float requestedAmount)
     {
         float realAmount = requestedAmount;

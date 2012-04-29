@@ -7,8 +7,25 @@ using System.Collections.Generic;
 /// <summary>
 /// A bird can only handle specific information.
 /// </summary>
-public class BirdInformation : IInformation 
+[System.Serializable]
+public class BirdInformation : IInformation
 {
+    /// <summary>
+    /// The maximum difference possible when comparing two food type information pieces
+    /// This value is linked to circumstances like environment bounds and the maximum amount of food
+    /// per food source
+    /// </summary>
+    public static float maxFoodDifferenceVectorMagnitude = 0;
+
+    /// <summary>
+    /// The next free id
+    /// </summary>
+    public static int nextFreeId = 0;
+    /// <summary>
+    /// The id of this bird
+    /// </summary>
+    public int id;
+
     /// <summary>
     /// the type of information
     /// </summary>
@@ -31,7 +48,7 @@ public class BirdInformation : IInformation
     /// </summary>
     public int hops { get; set; }
     /// <summary>
-    /// How long this information has been around
+    /// How long this information has been around (firstSeenTimestamp)
     /// </summary>
     public float age
     { 
@@ -56,6 +73,37 @@ public class BirdInformation : IInformation
     /// The position of the food source
     /// </summary>
     public Vector3 foodSourcePosition { get; set; }
+
+    /// <summary>
+    /// Constructor
+    /// </summary>
+    public BirdInformation()
+    {
+        id = nextFreeId++;
+    }
+
+    /// <summary>
+    /// needs to be updated each time the environment's bounds or the maximum amount of food per source
+    /// changes
+    /// </summary>
+    public static void UpdateMaxFoodVectorDifference()
+    {
+        float[] maxFoodDifferenceVector = new float[]
+        {
+            Bird.settings.maxAge,
+            Food.settings.maxAmountOfFood,
+            BirdEnvironment.settings.bounds.size.x,
+            BirdEnvironment.settings.bounds.size.y,
+            BirdEnvironment.settings.bounds.size.z
+        };
+
+        for (int i = 0; i < maxFoodDifferenceVector.Length; i++)
+        {
+            maxFoodDifferenceVectorMagnitude += maxFoodDifferenceVector[i] * maxFoodDifferenceVector[i];
+        }
+
+        maxFoodDifferenceVectorMagnitude = Mathf.Sqrt(maxFoodDifferenceVectorMagnitude);
+    }
 
     /// <summary>
     /// Copies the information to a new instance of BirdInformation
@@ -88,35 +136,48 @@ public class BirdInformation : IInformation
     /// as different as possible</returns>
     public float MeasureEquality(BirdInformation other)
     {
+        Debug.Log("measuring equality: " + id + " to " + other.id);
         float value = 1;
         if (other.type == this.type)
         {
+            // the type defines which dimensions can be compared
             if (type == BirdInformationType.FOOD)
             {
-                int foodProperties = 4; // there are 4 types of comparable food properties
-
-                // create difference vector in (food) property space with values ranging from 0 to 1
-                List<float> diffVector = new List<float>(foodProperties);
-                diffVector[0] = Mathf.Abs(other.foodSourceSize - this.foodSourceSize) / 
-                    Food.settings.maxAmountOfFood;
-                // firstly, move origin to (0, 0, 0), then calculate 0 - 1 ranged values
-                diffVector[1] = Mathf.Abs(other.foodSourcePosition.x - this.foodSourcePosition.x) / 
-                    BirdEnvironment.settings.bounds.size.x;
-                diffVector[2] = Mathf.Abs(other.foodSourcePosition.y - this.foodSourcePosition.y) /
-                    BirdEnvironment.settings.bounds.size.y;
-                diffVector[3] = Mathf.Abs(other.foodSourcePosition.z - this.foodSourcePosition.z) /
-                    BirdEnvironment.settings.bounds.size.z;
-
-                // calculate the distance of the two types of information in (food) property space
-                float magnitude = 0;
-                for (int i = 0; i < foodProperties; ++i)
+                // the vector containing the comparable information of this
+                float[] infoVectorA = new float[]
                 {
-                    magnitude += diffVector[i] * diffVector[i];
+                    this.age,
+                    this.foodSourceSize,
+                    this.foodSourcePosition.x,
+                    this.foodSourcePosition.y,
+                    this.foodSourcePosition.z
+                };
+
+                // the vector containing the comparable information of other
+                float[] infoVectorB = new float[]
+                {
+                    other.age,
+                    other.foodSourceSize,
+                    other.foodSourcePosition.x,
+                    other.foodSourcePosition.y,
+                    other.foodSourcePosition.z
+                };
+
+                int foodProperties = infoVectorA.Length; // the number of comparable food properties
+                float[] infoVectorDistance = new float[foodProperties];
+                float sqrMagnitude = 0;
+                for (int i = 0; i < foodProperties; i++)
+                {
+                    infoVectorDistance[i] = infoVectorA[i] - infoVectorB[i];
+                    sqrMagnitude += infoVectorDistance[i] * infoVectorDistance[i];
                 }
-                magnitude = Mathf.Sqrt(magnitude);
-                value = magnitude / foodProperties;
+                value = Mathf.Sqrt(sqrMagnitude);
+
+                // to make indifferent to environment circumstances, calculate value in range (0,1)
+                value = value / maxFoodDifferenceVectorMagnitude;
             }
         }
+        Debug.Log(value);
         return value;
     }
 }
