@@ -19,4 +19,12 @@ public class CommunicationPartner
     /// The random start timeout which determines which bird starts asking for information.
     /// </summary>
     public float startTimeout;
+    /// <summary>
+    /// If false, this partner still has some info which has not been shared
+    /// </summary>
+    public bool givenAllInfo = false;
+    /// <summary>
+    /// If false, the partner did not yet get all info
+    /// </summary>
+    public bool receivedAllInfo = false;
 }

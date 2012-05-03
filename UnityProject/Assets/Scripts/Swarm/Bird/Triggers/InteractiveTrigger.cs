@@ -11,15 +11,27 @@ public class InteractiveTrigger : BirdTrigger {
         {
             owner.Eat(food);
         }
-    }
 
-    void OnTriggerStay(Collider other)
-    {
         // if its a bird, try to enter communication state
         Bird bird = other.gameObject.GetComponent<Bird>();
         if (bird)
         {
             owner.Communicate(bird);
+            bird.Communicate(owner);
+        }
+    }
+
+    void OnTriggerStay(Collider other)
+    {
+    }
+
+    void OnTriggerExit(Collider other)
+    {
+        // if its a bird, exit communication state
+        Bird bird = other.gameObject.GetComponent<Bird>();
+        if (bird)
+        {
+            owner.AbortCommunication(bird);
         }
     }
 }

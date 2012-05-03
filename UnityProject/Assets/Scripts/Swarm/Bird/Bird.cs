@@ -11,7 +11,7 @@ public class Bird : Agent<BirdInformation> {
     
     // id
     private static int nextFreeId = 0;
-    private int id;
+    public int id;
 
     // display values in inspector for debugging
     public float SaturationStat;
@@ -22,9 +22,10 @@ public class Bird : Agent<BirdInformation> {
 
     // all the states
     private BirdStateGlobal stateGlobal;
+    public BirdStateSearch StateSearch { get { return stateSearch; } }
     private BirdStateSearch stateSearch;
+    public BirdStateCommunicate StateCommunicate { get { return stateCommunicate; } }
     private BirdStateCommunicate stateCommunicate;
-    private BirdStateEat stateEat;
 
     /// <summary>
     /// A dictionary holding all the needs an agent has
@@ -45,8 +46,6 @@ public class Bird : Agent<BirdInformation> {
     /// </summary>
     public List<Transform> Neighbors;
 
-    private float communicationTimer = 0;
-
 	private void Start ()
     {
         // set id
@@ -58,7 +57,6 @@ public class Bird : Agent<BirdInformation> {
 
         // initialize states
         stateGlobal = ScriptableObject.CreateInstance<BirdStateGlobal>();
-        stateEat = ScriptableObject.CreateInstance<BirdStateEat>();
         stateCommunicate = ScriptableObject.CreateInstance<BirdStateCommunicate>();
         stateSearch = ScriptableObject.CreateInstance<BirdStateSearch>();
 
@@ -67,7 +65,7 @@ public class Bird : Agent<BirdInformation> {
 
         // initialize needs
         Needs = new Dictionary<string, float>();
-        Needs.Add(GlobalNames.Needs.Food, 1.0f);
+        Needs.Add(GlobalNames.Needs.Food, 0.0f);
         Needs.Add(GlobalNames.Needs.Information, 1.0f);
 
         gameObject.tag = GlobalNames.Tags.Bird;
@@ -75,7 +73,7 @@ public class Bird : Agent<BirdInformation> {
         // set communication settings here for debugging - delete when birds are created in environment
         communicationSettings.EqualityThreshold = 0.1f;
         communicationSettings.certaintyThreshold = 0.0f;
-        communicationSettings.Timeout = 0.0f;
+        communicationSettings.Timeout = 5.0f;
 	}
 	
 	private void Update () 
@@ -109,14 +107,9 @@ public class Bird : Agent<BirdInformation> {
 
     public override void GatherInformation(BirdInformation information)
     {
-        BirdInformation sameInfo = Information.Find(item => item.MeasureEquality(information) <
-                communicationSettings.EqualityThreshold);
-
-        Debug.Log("(" + id + ")GatherInformation:");
-        if (sameInfo != null)
-            Debug.Log("Found an identical item " + sameInfo.id);
+        BirdInformation sameInfo = Information.Find(item => 
+            item.MeasureEquality(information) < communicationSettings.EqualityThreshold);
         
-
         if (information != null &&
             Needs[GlobalNames.Needs.Information] > settings.informationThreshold &&
             // only gather info if it is not yet in the list
@@ -172,7 +165,6 @@ public class Bird : Agent<BirdInformation> {
     /// <param name="food">The food source</param>
     public void Eat(Food food)
     {
-        Debug.Log("(" + id + ")Eating: ");
         // does the bird want to eat?
         if (Needs[GlobalNames.Needs.Food] > settings.eatingThreshold)
         {
@@ -180,7 +172,7 @@ public class Bird : Agent<BirdInformation> {
             float request = Needs[GlobalNames.Needs.Food] * settings.maxFoodCapacity;
             float meal = food.Eat(request);
             Needs[GlobalNames.Needs.Food] -= meal / settings.maxFoodCapacity;
-            Debug.Log("requested: " + request + " got: " + meal);
+            Debug.Log("(" + id + ")Eating: \n" + "requested: " + request + " got: " + meal);
             GatherInformation(food.Information);
         }
     }
@@ -189,26 +181,51 @@ public class Bird : Agent<BirdInformation> {
     /// Gets a random piece of information from the other bird
     /// </summary>
     /// <param name="other">The communication partner</param>
-    public void Communicate(Bird other)
+    public bool Communicate(Bird other)
     {
-        communicationTimer -= Time.deltaTime;
-
-        // does the bird want to gain info?
-        if (communicationTimer <= 0.0f)
+        // only if the bird is not too hungry
+        if (Needs[GlobalNames.Needs.Food] <= settings.eatingThreshold)
         {
-            communicationTimer = communicationSettings.Timeout;
-            GatherInformation(other.AskForInformation());
+            ChangeState(stateCommunicate);
+            stateCommunicate.AddCommunicationPartner(other);
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// The other bird has given all the info it can
+    /// </summary>
+    /// <param name="other">the bird which has given all info</param>
+    public void GivenAllInfo(Bird other)
+    {
+        if (FSM.CurrentState == stateCommunicate)
+        {
+            stateCommunicate.GivenAllInfo(other);
         }
     }
 
-    // returns a random piece of information gathered by this bird
-    public BirdInformation AskForInformation()
+    /// <summary>
+    /// Aborts communications with the other bird
+    /// </summary>
+    /// <param name="other">the bird with which to abort communications</param>
+    public void AbortCommunication(Bird other)
     {
-        int randomNumber = Random.Range((int) 0, Information.Count);
-        Debug.Log("(" + id + ") Giving info: " + randomNumber + " of " + Information.Count);
-        if (Information.Count > 0)
-            return Information[randomNumber];
-        else
-            return null;
+        if (FSM.CurrentState == stateCommunicate)
+        {
+            stateCommunicate.RemoveCommunicationPartner(other);
+        }
+    }
+
+    /// <summary>
+    /// Register for receiving a piece of info from the other bird
+    /// </summary>
+    /// <param name="other">the bird asking for information</param>
+    public void AskForInformation(Bird other)
+    {
+        if (Communicate(other))
+        {
+            stateCommunicate.AddToInformationRecipients(other);
+        }
     }
 }

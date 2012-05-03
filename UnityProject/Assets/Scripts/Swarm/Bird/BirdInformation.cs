@@ -118,8 +118,6 @@ public class BirdInformation : IInformation
         // create instance
         BirdInformation newInfo = new BirdInformation();
 
-        Debug.Log("copy " + this.id + " to " + newInfo.id);
-
         // copy values
         newInfo.hops = this.hops;
         newInfo.certainty = this.certainty;
@@ -143,7 +141,6 @@ public class BirdInformation : IInformation
     /// as different as possible</returns>
     public float MeasureEquality(BirdInformation other)
     {
-        Debug.Log("measuring equality: " + id + " to " + other.id);
         float value = 1;
         if (other.type == this.type)
         {
@@ -184,7 +181,6 @@ public class BirdInformation : IInformation
                 value = value / maxFoodDifferenceVectorMagnitude;
             }
         }
-        Debug.Log(value);
         return value;
     }
 
