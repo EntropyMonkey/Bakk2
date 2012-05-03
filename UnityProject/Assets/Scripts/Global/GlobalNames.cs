@@ -25,8 +25,11 @@ public class GlobalNames
         public const string Information = "information";
     }
 
-    public class Config
+    /// <summary>
+    /// the names for the events
+    /// </summary>
+    public class Events
     {
-        public const string FoodThreshold = "foodThreshold";
+        public const string BirdEnteredInteractiveTrigger = "birdEnteredInteractiveTrigger";
     }
 }

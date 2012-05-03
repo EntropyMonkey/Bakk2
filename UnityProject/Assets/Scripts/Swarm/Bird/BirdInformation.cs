@@ -22,9 +22,13 @@ public class BirdInformation : IInformation
     /// </summary>
     public static int nextFreeId = 0;
     /// <summary>
-    /// The id of this bird
+    /// The id of this information
     /// </summary>
     public int id;
+    /// <summary>
+    /// The id of the food where this info originated
+    /// </summary>
+    public int foodId;
 
     /// <summary>
     /// the type of information
@@ -114,6 +118,8 @@ public class BirdInformation : IInformation
         // create instance
         BirdInformation newInfo = new BirdInformation();
 
+        Debug.Log("copy " + this.id + " to " + newInfo.id);
+
         // copy values
         newInfo.hops = this.hops;
         newInfo.certainty = this.certainty;
@@ -121,6 +127,7 @@ public class BirdInformation : IInformation
         newInfo.gatheredTimestamp = -1; // still needs to be set
 
         newInfo.type = this.type;
+        newInfo.foodId = this.foodId;
         newInfo.foodSourcePosition = this.foodSourcePosition;
         newInfo.foodSourceSize = this.foodSourceSize;
 
@@ -179,5 +186,19 @@ public class BirdInformation : IInformation
         }
         Debug.Log(value);
         return value;
+    }
+
+    public void LogMe()
+    {
+        Debug.Log(" id " + id +
+            "\n firstSeenTimestamp " + firstSeenTimestamp +
+            "\n gatheredTimestamp " + gatheredTimestamp +
+            "\n hops " + hops +
+            "\n age " + age +
+            "\n certainty " + certainty +
+            "\n type " + type +
+            "\n foodSourcePosition " + foodSourcePosition +
+            "\n foodSourceSize " + foodSourceSize +
+            "\n foodId " + foodId);
     }
 }

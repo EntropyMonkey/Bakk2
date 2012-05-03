@@ -10,7 +10,7 @@ using System.Collections.Generic;
 public class Bird : Agent<BirdInformation> {
     
     // id
-    private static int freeId = 0;
+    private static int nextFreeId = 0;
     private int id;
 
     // display values in inspector for debugging
@@ -50,7 +50,7 @@ public class Bird : Agent<BirdInformation> {
 	private void Start ()
     {
         // set id
-        id = freeId++;
+        id = nextFreeId++;
 
         // initialize lists
         Information = new List<BirdInformation>();
@@ -73,7 +73,7 @@ public class Bird : Agent<BirdInformation> {
         gameObject.tag = GlobalNames.Tags.Bird;
 
         // set communication settings here for debugging - delete when birds are created in environment
-        communicationSettings.EqualityThreshold = 0.2f;
+        communicationSettings.EqualityThreshold = 0.1f;
         communicationSettings.certaintyThreshold = 0.0f;
         communicationSettings.Timeout = 0.0f;
 	}
@@ -109,24 +109,19 @@ public class Bird : Agent<BirdInformation> {
 
     public override void GatherInformation(BirdInformation information)
     {
+        BirdInformation sameInfo = Information.Find(item => item.MeasureEquality(information) <
+                communicationSettings.EqualityThreshold);
+
         Debug.Log("(" + id + ")GatherInformation:");
+        if (sameInfo != null)
+            Debug.Log("Found an identical item " + sameInfo.id);
         
+
         if (information != null &&
             Needs[GlobalNames.Needs.Information] > settings.informationThreshold &&
             // only gather info if it is not yet in the list
-            Information.Find(item => item.MeasureEquality(information) < 
-                communicationSettings.EqualityThreshold) == null)
+            sameInfo == null)
         {
-            Debug.Log(" id " + information.id + 
-                "\n firstSeenTimestamp " + information.firstSeenTimestamp +
-                "\n gatheredTimestamp " + information.gatheredTimestamp + 
-                "\n hops " + information.hops  + 
-                "\n age " + information.age + 
-                "\n certainty " + information.certainty + 
-                "\n type " + information.type + 
-                "\n foodSourcePosition " + information.foodSourcePosition + 
-                "\n foodSourceSize " + information.foodSourceSize);
-
             BirdInformation newInfo = information.Copy();
             newInfo.gatheredTimestamp = Time.time;
 
@@ -193,25 +188,26 @@ public class Bird : Agent<BirdInformation> {
     /// <summary>
     /// Gets a random piece of information from the other bird
     /// </summary>
-    /// <param name="bird">The communication partner</param>
-    public void Communicate(Bird bird)
+    /// <param name="other">The communication partner</param>
+    public void Communicate(Bird other)
     {
         communicationTimer -= Time.deltaTime;
 
         // does the bird want to gain info?
-        if (communicationTimer <= 0.0f && 
-            Needs[GlobalNames.Needs.Information] > settings.informationThreshold)
+        if (communicationTimer <= 0.0f)
         {
             communicationTimer = communicationSettings.Timeout;
-            GatherInformation(bird.AskForInformation());
+            GatherInformation(other.AskForInformation());
         }
     }
 
     // returns a random piece of information gathered by this bird
     public BirdInformation AskForInformation()
     {
+        int randomNumber = Random.Range((int) 0, Information.Count);
+        Debug.Log("(" + id + ") Giving info: " + randomNumber + " of " + Information.Count);
         if (Information.Count > 0)
-            return Information[Random.Range(0, Information.Count - 1)];
+            return Information[randomNumber];
         else
             return null;
     }

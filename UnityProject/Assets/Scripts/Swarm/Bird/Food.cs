@@ -6,13 +6,16 @@ using System.Collections;
 /// </summary>
 public class Food : MonoBehaviour, IOfferInformation<BirdInformation>
 {
+    public static int nextFreeId = 0;
+    public int id;
+
     public static FoodSettings settings;
 
     public BirdInformation Information { get; set; }
     public BirdEnvironment Environment { get; set; }
 
     private float amountOfFood;
-    public float AmountOfFood 
+    public float AmountOfFood
     {
         get
         {
@@ -21,12 +24,15 @@ public class Food : MonoBehaviour, IOfferInformation<BirdInformation>
         set
         {
             amountOfFood = value;
+            amount = value; // debugging
             Information.foodSourceSize = value;
             Vector3 scale = Vector3.zero;
             scale.x = scale.y = scale.z = settings.maxScale * amountOfFood / settings.maxAmountOfFood;
             transform.localScale = scale;
         }
     }
+
+    public float amount;
 
     private float timeToLive;
 
@@ -36,6 +42,8 @@ public class Food : MonoBehaviour, IOfferInformation<BirdInformation>
 
         // set timer
         timeToLive = settings.timeAlive;
+
+        id = nextFreeId++;
 
         // set information to be gathered
         Information = new BirdInformation
@@ -51,12 +59,14 @@ public class Food : MonoBehaviour, IOfferInformation<BirdInformation>
             foodSourcePosition = Vector3.zero,
             foodSourceSize = -1,
         };
+
     }
 
     private void Start()
     {
         // position is reset before start is called
         Information.foodSourcePosition = transform.position;
+        Information.foodId = id;
     }
 
     private void Update()

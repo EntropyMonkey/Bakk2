@@ -3,7 +3,7 @@ using System.Collections;
 
 public class VisibleTrigger : BirdTrigger {
 
-    void Start()
+    new void Start()
     {
         base.Start();
     }

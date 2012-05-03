@@ -39,7 +39,7 @@ public class BirdEnvironment : Environment<BirdInformation>
             bounds = collider.bounds,
             distributeFoodAfterSeconds = 2.0f,
         };
-        settings.maxDistributedAmountOfFood = Bird.settings.maxFoodCapacity * settings.maxBirds * 0.5f;
+        settings.maxDistributedAmountOfFood = Bird.settings.maxFoodCapacity * settings.maxBirds;
 
         // set food settings
         Food.settings = new FoodSettings
@@ -134,8 +134,8 @@ public class BirdEnvironment : Environment<BirdInformation>
         // reset new free food
         freeFood.transform.position = randomPosition;
         freeFood.AmountOfFood = Mathf.Min(
-            Random.Range(1, settings.maxDistributedAmountOfFood - currentDistributedAmountOfFood),
-            Food.settings.maxAmountOfFood);
+            Random.Range(1, Food.settings.maxAmountOfFood),
+            settings.maxDistributedAmountOfFood - currentDistributedAmountOfFood);
         // set active after initializing
         freeFood.gameObject.active = true;
 
