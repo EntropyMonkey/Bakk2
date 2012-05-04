@@ -184,7 +184,7 @@ public class BirdInformation : IInformation
         return value;
     }
 
-    public void LogMe()
+    public void DebugLogMe()
     {
         Debug.Log(" id " + id +
             "\n firstSeenTimestamp " + firstSeenTimestamp +

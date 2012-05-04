@@ -92,12 +92,16 @@ public class Bird : Agent<BirdInformation> {
         InfoStat = 1.0f - Needs[GlobalNames.Needs.Information];
     }
 
+    /// <summary>
+    /// Updates stored information (certainty, needs)
+    /// </summary>
     private void UpdateInformation()
     {
         // get significancy values, because they change with age and forget insignificant information
         for (int i = 0; i < Information.Count; i++)
         {
-            if (CalculateCertainty(Information[i]) < communicationSettings.certaintyThreshold)
+            if (CalculateCertainty(Information[i]) < communicationSettings.certaintyThreshold ||
+                Information[i].age > settings.maxAge)
                 Information.Remove(Information[i]);
         }
 
@@ -105,6 +109,24 @@ public class Bird : Agent<BirdInformation> {
             1.0f - Mathf.Max(Information.Count * settings.informationNeedSaturationPerInfo, 0.0f);
     }
 
+    /// <summary>
+    /// Calculates the certainty for a piece of information
+    /// </summary>
+    /// <param name="info">the information, will not be changed</param>
+    /// <returns>the certainty of the given information</returns>
+    private float CalculateCertainty(BirdInformation info)
+    {
+        // calculate single certainties
+        float hopCertainty = - (float)info.hops / (float)settings.maxHops + 1;
+        float ageCertainty = - info.age / settings.maxAge + 1;
+        // hop and age certainty are equally weighted - calculate average of all certainties
+        return (hopCertainty + ageCertainty) * 0.5f;
+    }
+
+    /// <summary>
+    /// gathers the information if the circumstances allow it
+    /// </summary>
+    /// <param name="information">the information which will be gathered</param>
     public override void GatherInformation(BirdInformation information)
     {
         BirdInformation sameInfo = Information.Find(item => 
@@ -138,18 +160,15 @@ public class Bird : Agent<BirdInformation> {
             {
                 Information.Add(newInfo);
             }
+
+            newInfo.DebugLogMe();
         }
     }
 
-    private float CalculateCertainty(BirdInformation info)
-    {
-        // calculate single certainties
-        float hopCertainty = 1 / Mathf.Max(1 - info.hops / settings.maxHops, 0.000001f);
-        float ageCertainty = 1 / Mathf.Max(1 - info.age / settings.maxAge, 0.000001f);
-        // hop and age certainty are equally weighted
-        return (hopCertainty + ageCertainty) * 0.5f;
-    }
-
+    /// <summary>
+    /// Changes the bird's state
+    /// </summary>
+    /// <param name="state">the new state</param>
     public void ChangeState(FSMState<Bird> state)
     {
         FSM.ChangeState(state);

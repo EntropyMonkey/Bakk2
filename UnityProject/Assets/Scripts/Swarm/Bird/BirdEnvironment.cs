@@ -24,8 +24,8 @@ public class BirdEnvironment : Environment<BirdInformation>
         // set bird settings
         Bird.settings = new BirdSettings
         {
-            maxAge = 180.0f,
-            maxHops = 10,
+            maxAge = 60.0f,
+            maxHops = 2,
             eatingThreshold = 0.5f,
             informationThreshold = 0.5f,
             informationNeedSaturationPerInfo = 0.0f,
