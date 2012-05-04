@@ -46,6 +46,10 @@ public class Bird : Agent<BirdInformation> {
     /// </summary>
     public List<Transform> Neighbors;
 
+    // the shaders to toggle between
+    private Shader diffuseShader;
+    private Shader highlightShader;
+
 	private void Start ()
     {
         // set id
@@ -82,8 +86,14 @@ public class Bird : Agent<BirdInformation> {
 
         UpdateInformation();
 
+        UpdateHalo();
+
         DebugUpdate();
 	}
+    
+    private void UpdateHalo()
+    {
+    }
 
     private void DebugUpdate()
     {
@@ -105,7 +115,7 @@ public class Bird : Agent<BirdInformation> {
                 Information.Remove(Information[i]);
         }
 
-        Needs[GlobalNames.Needs.Information] = 
+        Needs[GlobalNames.Needs.Information] =
             1.0f - Mathf.Max(Information.Count * settings.informationNeedSaturationPerInfo, 0.0f);
     }
 

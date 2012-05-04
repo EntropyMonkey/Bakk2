@@ -26,10 +26,13 @@ public class BirdEnvironment : Environment<BirdInformation>
         {
             maxAge = 60.0f,
             maxHops = 2,
+            significancyThreshold = 1,
             eatingThreshold = 0.5f,
             informationThreshold = 0.5f,
             informationNeedSaturationPerInfo = 0.0f,
             maxFoodCapacity = 2.0f,
+            haloSizeGatherInformation = 5.0f,
+            normalHaloSize = 0.0f,
         };
 
         // set environment settings

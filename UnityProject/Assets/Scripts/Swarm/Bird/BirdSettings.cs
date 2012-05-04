@@ -35,6 +35,14 @@ public struct BirdSettings
     /// when the significance of a piece of information reaches this threshold, it's stored
     /// this threshold must have a value equal to or bigger than 1 (see Bird.GatherInformation method)
     /// </summary>
-    private const float significancyThresh = 1.0f;
-    public float significancyThreshold { get { return significancyThresh; } }
+    public float significancyThreshold { get; set; }
+
+    /// <summary>
+    /// The standard halosize
+    /// </summary>
+    public float normalHaloSize { get; set; }
+    /// <summary>
+    /// the halo size when gathering info
+    /// </summary>
+    public float haloSizeGatherInformation { get; set; }
 }
