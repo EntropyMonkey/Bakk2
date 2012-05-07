@@ -24,15 +24,15 @@ public class BirdEnvironment : Environment<BirdInformation>
         // set bird settings
         Bird.settings = new BirdSettings
         {
-            maxAge = 60.0f,
+            maxAge = 600.0f,
             maxHops = 2,
             significancyThreshold = 1,
             eatingThreshold = 0.5f,
+            saturationDecreaseIn = 60.0f,
             informationThreshold = 0.5f,
             informationNeedSaturationPerInfo = 0.0f,
             maxFoodCapacity = 2.0f,
-            haloSizeGatherInformation = 5.0f,
-            normalHaloSize = 0.0f,
+            timeout = 0.5f,
         };
 
         // set environment settings
@@ -77,6 +77,26 @@ public class BirdEnvironment : Environment<BirdInformation>
     {
         ManageFood();
 	}
+
+    private void OnTriggerEnter(Collider other)
+    {
+        // if a bird exits the environment, a force is turned on which will steer it back
+        Bird bird = other.gameObject.GetComponent<Bird>();
+        if (bird)
+        {
+            bird.outsideEnvironmentMultiplier = 0.0f;
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        // if a bird exits the environment, a force is turned on which will steer it back
+        Bird bird = other.gameObject.GetComponent<Bird>();
+        if (bird)
+        {
+            bird.outsideEnvironmentMultiplier = 1.0f;
+        }
+    }
 
     #region Birds
 

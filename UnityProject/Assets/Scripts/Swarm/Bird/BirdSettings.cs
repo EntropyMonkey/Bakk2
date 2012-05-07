@@ -21,6 +21,10 @@ public struct BirdSettings
     /// The bird is 100% saturated when it eats this much food
     /// </summary>
     public float maxFoodCapacity { get; set; }
+    /// <summary>
+    /// The saturation is fully decreased in this many seconds
+    /// </summary>
+    public float saturationDecreaseIn { get; set; }
 
     /// <summary>
     /// When the need for eating reaches this value, the bird looks for information
@@ -38,11 +42,8 @@ public struct BirdSettings
     public float significancyThreshold { get; set; }
 
     /// <summary>
-    /// The standard halosize
+    /// The length of time after having gathered information in which no information can be gathered
     /// </summary>
-    public float normalHaloSize { get; set; }
-    /// <summary>
-    /// the halo size when gathering info
-    /// </summary>
-    public float haloSizeGatherInformation { get; set; }
+    public float timeout { get; set; }
+
 }

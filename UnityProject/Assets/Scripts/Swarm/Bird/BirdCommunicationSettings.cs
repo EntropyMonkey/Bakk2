@@ -16,10 +16,5 @@ public struct BirdCommunicationSettings : IPropagationSettings
     /// <summary>
     /// How equal two pieces of information must be to be seen as equal
     /// </summary>
-    public float EqualityThreshold { get; set; }
-
-    /// <summary>
-    /// The length of time after having gathered information in which no information can be gathered
-    /// </summary>
-    public float Timeout { get; set; }
+    public float equalityThreshold { get; set; }
 }

@@ -23,7 +23,7 @@ public class VisibleTrigger : BirdTrigger {
         // if it is a bird, get its position and velocity (observe)
         if (other.gameObject.tag == GlobalNames.Tags.Bird)
         {
-            owner.Neighbors.Add(other.transform);
+            owner.AddSightNeighbor(other.transform);
         }
     }
 
@@ -32,7 +32,7 @@ public class VisibleTrigger : BirdTrigger {
         // if it is a bird, delete it from neighbors
         if (other.gameObject.tag == GlobalNames.Tags.Bird)
         {
-            owner.Neighbors.Remove(other.transform);
+            owner.RemoveSightNeighbor(other.transform);
         }
     }
 }

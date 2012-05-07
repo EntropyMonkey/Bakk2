@@ -1,23 +1,15 @@
 using UnityEngine;
 using System.Collections;
 
-public class InteractiveTrigger : BirdTrigger {
+public class NearTrigger : BirdTrigger {
 
     void OnTriggerEnter(Collider other)
     {
-        // if its food, try to enter eat state
-        Food food = other.gameObject.GetComponent<Food>();
-        if (food)
-        {
-            owner.Feed(food);
-        }
-
         // if its a bird, try to enter communication state
         Bird bird = other.gameObject.GetComponent<Bird>();
         if (bird)
         {
-            owner.Communicate(bird);
-            bird.Communicate(owner);
+            owner.AddNearNeighbor(bird.gameObject.transform);
         }
     }
 
@@ -31,7 +23,7 @@ public class InteractiveTrigger : BirdTrigger {
         Bird bird = other.gameObject.GetComponent<Bird>();
         if (bird)
         {
-            owner.AbortCommunication(bird);
+            owner.RemoveNearNeighbor(bird.gameObject.transform);
         }
     }
 }

@@ -3,7 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-public class BirdStateCommunicate : FSMState<Bird>
+public class BirdStateCommunicate : IBirdState
 {
     /// <summary>
     /// stores the birds which will receive their answer next
@@ -31,17 +31,22 @@ public class BirdStateCommunicate : FSMState<Bird>
     /// </summary>
     private Bird owner;
 
-    void OnEnable()
-    {
-    }
-
     public override void Enter(Bird owner)
     {
         this.owner = owner;
 
+        // set color
+        standardColor = owner.standardColorCommunication;
+
         // initiate collections (reset when entering state)
         nextAnswerRecipientQueue = new ExtendedQueue<CommunicationPartner>();
         communicationPartners = new List<CommunicationPartner>();
+
+        cohesionMultiplier = 0.6f;
+        separatingMultiplier = 0.4f;
+        targetMultiplier = 0.0f;
+        aligningMultiplier = 0.9f;
+
     }
 
     public override void Execute(Bird owner)
@@ -58,6 +63,9 @@ public class BirdStateCommunicate : FSMState<Bird>
                 // can only give info if there is some
                 if (owner.Information.Count > 0)
                 {
+                    if (next.currentIndex >= owner.Information.Count)
+                        next.currentIndex = 0;
+
                     next.bird.GatherInformation(owner.Information[next.currentIndex]);
                 }
                 else if (owner.Information.Count == 0)
@@ -83,7 +91,7 @@ public class BirdStateCommunicate : FSMState<Bird>
                 {
                     NoInformationToReceiveFromMe(next);
                 }
-                answerCountdown = owner.communicationSettings.Timeout;
+                answerCountdown = Bird.settings.timeout;
             }
             // if there are no questions to answer
             else
@@ -91,6 +99,12 @@ public class BirdStateCommunicate : FSMState<Bird>
                 // ask the next partner for new information
                 AskNextPartner();
             }
+        }
+
+        // handle state change
+        if (owner.Hungry && owner.Informed)
+        {
+            owner.ChangeState(owner.StateFeed);
         }
     }
 
@@ -128,6 +142,12 @@ public class BirdStateCommunicate : FSMState<Bird>
             if (partner.receivedAllInfo)
             {
                 RemoveCommunicationPartner(partner);
+            }
+
+            // change state when there is no more information to get
+            if (owner.Hungry && communicationPartners.Count == 0)
+            {
+                owner.ChangeState(owner.StateExplore);
             }
         }
     }
@@ -222,7 +242,7 @@ public class BirdStateCommunicate : FSMState<Bird>
             // if there are no partners left
             if (communicationPartners.Count == 0)
             {
-                owner.ChangeState(owner.StateSearch);
+                owner.ChangeState(owner.StateExplore);
             }
         }
     }
@@ -233,5 +253,6 @@ public class BirdStateCommunicate : FSMState<Bird>
     public override void Exit(Bird owner)
     {
         answerCountdown = 0;
+        owner.HighlightBird(standardColor);
     }
 }

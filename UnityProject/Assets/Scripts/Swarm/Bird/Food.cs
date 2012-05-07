@@ -36,6 +36,13 @@ public class Food : MonoBehaviour, IOfferInformation<BirdInformation>
 
     private float timeToLive;
 
+    // color/highlighting
+    private Color currentColor;
+    private Color standardColor;
+    public Color eatingHighlightColor;
+    private float currentBlendingTime;
+    public float blendingTime;
+
     private void Awake()
     {
         gameObject.tag = GlobalNames.Tags.IOfferInformation;
@@ -60,6 +67,8 @@ public class Food : MonoBehaviour, IOfferInformation<BirdInformation>
             foodSourceSize = -1,
         };
 
+        standardColor = currentColor = renderer.material.color;
+        currentBlendingTime = 0;
     }
 
     private void Start()
@@ -74,10 +83,16 @@ public class Food : MonoBehaviour, IOfferInformation<BirdInformation>
         timeToLive -= Time.deltaTime;
         if (timeToLive <= 0.0f)
             Destroy(gameObject);
-    }
 
-    private void OnTriggerEnter(Collider other)
+        // update color
+        currentBlendingTime += Time.deltaTime;
+        renderer.material.color = Color.Lerp(currentColor, standardColor, currentBlendingTime / blendingTime);
+    }
+    
+    private void HighlightFood(Color highlightColor)
     {
+        currentColor = highlightColor;
+        currentBlendingTime = 0;
     }
 
     /// <summary>
@@ -87,6 +102,8 @@ public class Food : MonoBehaviour, IOfferInformation<BirdInformation>
     /// <returns>the amount of food the source can provide</returns>
     public float Eat(float requestedAmount)
     {
+        HighlightFood(eatingHighlightColor);
+
         float realAmount = requestedAmount;
 
         // is there enough food

@@ -7,30 +7,89 @@ using System.Collections.Generic;
 /// <summary>
 /// A bird can only gather information suited for birds.
 /// </summary>
-public class Bird : Agent<BirdInformation> {
-    
+public class Bird : Agent<BirdInformation>
+{
+    #region Members
+    #region Id
     // id
     private static int nextFreeId = 0;
     public int id;
+    #endregion
 
+    #region Debug
     // display values in inspector for debugging
     public float SaturationStat;
     public float InfoStat;
+    #endregion
 
+    #region State related
     // the state machine
     private FiniteStateMachine<Bird> FSM;
+    /// <summary>
+    /// The bird's current state
+    /// </summary>
+    public FSMState<Bird> CurrentState { get { return FSM.CurrentState; } }
 
-    // all the states
+    /// <summary>
+    /// Handles movement
+    /// </summary>
     private BirdStateGlobal stateGlobal;
-    public BirdStateSearch StateSearch { get { return stateSearch; } }
-    private BirdStateSearch stateSearch;
+    /// <summary>
+    /// Handles exploring the environment
+    /// </summary>
+    public BirdStateExplore StateExplore { get { return stateExplore; } }
+    private BirdStateExplore stateExplore;
+    /// <summary>
+    /// Handles communication with other birds
+    /// </summary>
     public BirdStateCommunicate StateCommunicate { get { return stateCommunicate; } }
     private BirdStateCommunicate stateCommunicate;
+    /// <summary>
+    /// Handles feeding
+    /// </summary>
+    public BirdStateFeed StateFeed { get { return stateFeed; } }
+    private BirdStateFeed stateFeed;
 
+    public Vector3 targetPoint;
+    public float outsideEnvironmentMultiplier = 0;
+
+    private List<Transform> sightNeighbors;
+    /// <summary>
+    /// All currently visible birds are stored here
+    /// </summary>
+    public List<Transform> SightNeighbors { get { return sightNeighbors; } }
+
+    private List<Transform> nearNeighbors;
+    /// <summary>
+    /// All currently nearly touching birds are stored here
+    /// </summary>
+    public List<Transform> NearNeighbors { get { return nearNeighbors; } }
+    #endregion
+
+    #region Needs
     /// <summary>
     /// A dictionary holding all the needs an agent has
     /// </summary>
     public Dictionary<string, float> Needs;
+
+    public bool Hungry
+    {
+        get
+        {
+            return Needs[GlobalNames.Needs.Food] > Bird.settings.eatingThreshold;
+        }
+    }
+
+    public bool Informed
+    {
+        get
+        {
+            return Needs[GlobalNames.Needs.Information] < Bird.settings.informationThreshold;
+        }
+    }
+    #endregion
+
+    #region Settings
     /// <summary>
     /// The bird's configurations
     /// </summary>
@@ -40,59 +99,83 @@ public class Bird : Agent<BirdInformation> {
     /// They can be different for each bird (however, are only different for the three swarms)
     /// </summary>
     public BirdCommunicationSettings communicationSettings;
+    #endregion
 
-    /// <summary>
-    /// All currently visible birds are stored here
-    /// </summary>
-    public List<Transform> Neighbors;
+    #region Visualization
+    // the color fading business
+    public Color standardColorIdle;
+    public Color standardColorCommunication; 
+    public Color standardColorFeeding;
+    public Color highlightInformationGathering;
+    public Color highlightCommunication;
+    private Color currentColor;
+    public float blendingTime; // how long the blending needs (total)
+    private float currentBlendingTime; // how long it has been blending up to now (state of the art)
+    #endregion
+    #endregion
 
-    // the shaders to toggle between
-    private Shader diffuseShader;
-    private Shader highlightShader;
-
-	private void Start ()
+    #region Methods
+    #region Start
+    private void Start ()
     {
         // set id
         id = nextFreeId++;
 
         // initialize lists
         Information = new List<BirdInformation>();
-        Neighbors = new List<Transform>();
+        sightNeighbors = new List<Transform>();
+        nearNeighbors = new List<Transform>();
 
         // initialize states
         stateGlobal = ScriptableObject.CreateInstance<BirdStateGlobal>();
         stateCommunicate = ScriptableObject.CreateInstance<BirdStateCommunicate>();
-        stateSearch = ScriptableObject.CreateInstance<BirdStateSearch>();
+        stateExplore = ScriptableObject.CreateInstance<BirdStateExplore>();
+        stateFeed = ScriptableObject.CreateInstance<BirdStateFeed>();
 
         FSM = new FiniteStateMachine<Bird>();
-        FSM.Configure(this, stateSearch, stateGlobal);
+        FSM.Configure(this, stateExplore, stateGlobal);
 
         // initialize needs
         Needs = new Dictionary<string, float>();
-        Needs.Add(GlobalNames.Needs.Food, 0.0f);
+        Needs.Add(GlobalNames.Needs.Food, 1.0f);
         Needs.Add(GlobalNames.Needs.Information, 1.0f);
 
         gameObject.tag = GlobalNames.Tags.Bird;
 
         // set communication settings here for debugging - delete when birds are created in environment
-        communicationSettings.EqualityThreshold = 0.1f;
+        communicationSettings.equalityThreshold = 0.1f;
         communicationSettings.certaintyThreshold = 0.0f;
-        communicationSettings.Timeout = 5.0f;
+
+        // set renderer colors
+        renderer.material.color = currentColor = standardColorIdle;
 	}
-	
-	private void Update () 
+    #endregion
+
+    #region Update related
+    private void Update () 
     {
+        // update movement and state changes
         FSM.Update();
 
+        // updates information age, deletes old info
         UpdateInformation();
 
-        UpdateHalo();
+        UpdateNeeds();
 
+        // updates colors
+        UpdateHighlighting();
+
+        // show stats in inspector
         DebugUpdate();
 	}
     
-    private void UpdateHalo()
+    /// <summary>
+    /// Changing color at certain events
+    /// </summary>
+    private void UpdateHighlighting()
     {
+        currentBlendingTime += Time.deltaTime;
+        renderer.material.color = Color.Lerp(currentColor, ((IBirdState)FSM.CurrentState).standardColor, currentBlendingTime / blendingTime);
     }
 
     private void DebugUpdate()
@@ -114,9 +197,18 @@ public class Bird : Agent<BirdInformation> {
                 Information[i].age > settings.maxAge)
                 Information.Remove(Information[i]);
         }
+    }
 
+    /// <summary>
+    /// Updates the bird's needs
+    /// </summary>
+    private void UpdateNeeds()
+    {
         Needs[GlobalNames.Needs.Information] =
             1.0f - Mathf.Max(Information.Count * settings.informationNeedSaturationPerInfo, 0.0f);
+
+        Needs[GlobalNames.Needs.Food] += settings.maxFoodCapacity / settings.saturationDecreaseIn * Time.deltaTime;
+        Needs[GlobalNames.Needs.Food] = Mathf.Max(Needs[GlobalNames.Needs.Food], 1.0f);
     }
 
     /// <summary>
@@ -132,7 +224,21 @@ public class Bird : Agent<BirdInformation> {
         // hop and age certainty are equally weighted - calculate average of all certainties
         return (hopCertainty + ageCertainty) * 0.5f;
     }
+    #endregion
 
+    #region HighlightBird
+    /// <summary>
+    /// Gives the birdmesh a new color for some time
+    /// </summary>
+    /// <param name="newColor">the new color</param>
+    public void HighlightBird(Color newColor)
+    {
+        currentColor = newColor;
+        currentBlendingTime = 0;
+    }
+    #endregion
+
+    #region GatherInformation
     /// <summary>
     /// gathers the information if the circumstances allow it
     /// </summary>
@@ -140,13 +246,15 @@ public class Bird : Agent<BirdInformation> {
     public override void GatherInformation(BirdInformation information)
     {
         BirdInformation sameInfo = Information.Find(item => 
-            item.MeasureEquality(information) < communicationSettings.EqualityThreshold);
+            item.MeasureEquality(information) < communicationSettings.equalityThreshold);
         
         if (information != null &&
             Needs[GlobalNames.Needs.Information] > settings.informationThreshold &&
             // only gather info if it is not yet in the list
             sameInfo == null)
         {
+            HighlightBird(highlightInformationGathering);
+
             BirdInformation newInfo = information.Copy();
             newInfo.gatheredTimestamp = Time.time;
 
@@ -171,10 +279,20 @@ public class Bird : Agent<BirdInformation> {
                 Information.Add(newInfo);
             }
 
+            UpdateInformation();
+
+            // need to do that after information update
+            if (newInfo.hops == 0 && newInfo.type == BirdInformation.BirdInformationType.FOOD)
+            {
+                ((IBirdState)FSM.CurrentState).FoundFood(newInfo.foodSourcePosition);
+            }
+
             newInfo.DebugLogMe();
         }
     }
+    #endregion
 
+    #region ChangeState
     /// <summary>
     /// Changes the bird's state
     /// </summary>
@@ -183,16 +301,44 @@ public class Bird : Agent<BirdInformation> {
     {
         FSM.ChangeState(state);
     }
+    #endregion
 
-    private void OnCollisionEnter(Collision collision)
+    #region Neighbor related
+    /// <summary>
+    /// Adds a bird to the neighbor list
+    /// </summary>
+    /// <param name="birdTransform">the bird's transform</param>
+    public void AddSightNeighbor(Transform birdTransform)
     {
+        sightNeighbors.Add(birdTransform);
+        ((IBirdState)FSM.CurrentState).FoundBird(birdTransform);
     }
 
+    /// <summary>
+    /// Removes the transform from the neighbor list
+    /// </summary>
+    public void RemoveSightNeighbor(Transform birdTransform)
+    {
+        sightNeighbors.Remove(birdTransform);
+    }
+
+    public void AddNearNeighbor(Transform birdTransform)
+    {
+        nearNeighbors.Add(birdTransform);
+    }
+
+    public void RemoveNearNeighbor(Transform birdTransform)
+    {
+        nearNeighbors.Remove(birdTransform);
+    }
+    #endregion
+
+    #region Feed
     /// <summary>
     /// Eats as much as possible regarding bird's food capacity and amount of food ready for disposal
     /// </summary>
     /// <param name="food">The food source</param>
-    public void Eat(Food food)
+    public void Feed(Food food)
     {
         // does the bird want to eat?
         if (Needs[GlobalNames.Needs.Food] > settings.eatingThreshold)
@@ -205,17 +351,21 @@ public class Bird : Agent<BirdInformation> {
             GatherInformation(food.Information);
         }
     }
+    #endregion
 
+    #region Communication related
     /// <summary>
     /// Gets a random piece of information from the other bird
     /// </summary>
     /// <param name="other">The communication partner</param>
-    public bool Communicate(Bird other)
+    public virtual bool Communicate(Bird other)
     {
-        // only if the bird is not too hungry
-        if (Needs[GlobalNames.Needs.Food] <= settings.eatingThreshold)
+        // only if the bird is not (hungry and informed)
+        if (!(Needs[GlobalNames.Needs.Food] > settings.eatingThreshold && 
+            Needs[GlobalNames.Needs.Information] < settings.informationThreshold ))
         {
-            ChangeState(stateCommunicate);
+            //HighlightBird(highlightCommunication);
+            ChangeState(StateCommunicate);
             stateCommunicate.AddCommunicationPartner(other);
             return true;
         }
@@ -257,4 +407,6 @@ public class Bird : Agent<BirdInformation> {
             stateCommunicate.AddToInformationRecipients(other);
         }
     }
+    #endregion
+    #endregion
 }

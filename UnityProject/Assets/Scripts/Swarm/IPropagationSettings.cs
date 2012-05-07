@@ -8,5 +8,8 @@ using System.Collections;
 /// </summary>
 public interface IPropagationSettings 
 {
-    float Timeout { get; set; }
+    /// <summary>
+    /// The certainty a piece of information must have to be remembered
+    /// </summary>
+    float certaintyThreshold { get; set; }
 }
