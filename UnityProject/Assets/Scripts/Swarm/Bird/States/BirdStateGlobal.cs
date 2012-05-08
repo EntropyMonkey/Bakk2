@@ -28,7 +28,7 @@ public class BirdStateGlobal : FSMState<Bird>
     public override void Enter(Bird owner)
     {
         transform = owner.gameObject.transform;
-        lastVelocity = Vector3.forward;
+        lastVelocity = Vector3.forward * Bird.settings.maxVelocity;
     }
 
     public override void Execute(Bird owner)
@@ -43,7 +43,7 @@ public class BirdStateGlobal : FSMState<Bird>
             foreach (Transform t in owner.NearNeighbors)
             {
                 // calculate separating force
-                separatingForce += t.position - transform.position;
+                separatingForce += transform.position - t.position;
             }
         }
 
@@ -56,7 +56,7 @@ public class BirdStateGlobal : FSMState<Bird>
                     if (owner.NearNeighbors.Find(item => item == t) == null)
                     {
                         // calculate cohesionForce
-                        cohesionForce += transform.position - t.position;
+                        cohesionForce += t.position - transform.position;
                     }
                 }
             }
@@ -65,7 +65,7 @@ public class BirdStateGlobal : FSMState<Bird>
                 foreach (Transform t in owner.SightNeighbors)
                 {
                     // calculate cohesionForce
-                    cohesionForce += transform.position - t.position;
+                    cohesionForce += t.position - transform.position;
                 }
             }
         }
@@ -76,11 +76,14 @@ public class BirdStateGlobal : FSMState<Bird>
             stayInEnvironmentForce = BirdEnvironment.settings.bounds.center - transform.position;
         }
 
+        // calculate velocity to go to target point
+        targetVelocity = owner.targetPoint - transform.position;
+
         // add forces
         resultForce += 
-            separatingForce * ((IBirdState)owner.CurrentState).separatingMultiplier * Time.deltaTime +
-            cohesionForce * ((IBirdState)owner.CurrentState).cohesionMultiplier * Time.deltaTime +
-            targetVelocity * ((IBirdState)owner.CurrentState).targetMultiplier * Time.deltaTime +
+            separatingForce * ((IBirdState)owner.CurrentState).movementSettings.separatingMultiplier * Time.deltaTime +
+            cohesionForce * ((IBirdState)owner.CurrentState).movementSettings.cohesionMultiplier * Time.deltaTime +
+            targetVelocity * ((IBirdState)owner.CurrentState).movementSettings.targetMultiplier * Time.deltaTime +
             stayInEnvironmentForce * owner.outsideEnvironmentMultiplier * Time.deltaTime;
 
         if (owner.SightNeighbors.Count > 0)
@@ -95,6 +98,9 @@ public class BirdStateGlobal : FSMState<Bird>
             resultForce = heading.normalized * resultForce.magnitude;
         }
 
+        resultForce = resultForce.normalized * Mathf.Min(resultForce.magnitude, Bird.settings.maxVelocity);
+        resultForce = resultForce.normalized * Mathf.Max(resultForce.magnitude, Bird.settings.minVelocity);
+
         transform.position += resultForce * Time.deltaTime;
 
         lastVelocity = resultForce;
@@ -103,5 +109,19 @@ public class BirdStateGlobal : FSMState<Bird>
     public override void Exit(Bird owner)
     {
 
+    }
+
+    /// <summary>
+    /// randomly changes direction
+    /// </summary>
+    public void ChangeDirection()
+    {
+        float speed = lastVelocity.magnitude;
+
+        Vector3 randomDirection = Vector3.zero;
+        randomDirection.x = UnityEngine.Random.Range(0.0f, 10.0f);
+        randomDirection.y = UnityEngine.Random.Range(0.0f, 10.0f);
+        randomDirection.z = UnityEngine.Random.Range(0.0f, 10.0f);
+        lastVelocity = randomDirection.normalized * speed;
     }
 }

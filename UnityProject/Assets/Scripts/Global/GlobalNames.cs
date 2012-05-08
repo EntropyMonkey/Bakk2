@@ -16,6 +16,14 @@ public class GlobalNames
         public const string Bird = "Bird";
     }
 
+    public class Names
+    {
+        public const string Environment = "Environment";
+        public const string VisibleTrigger = "TRIGGER_Visible";
+        public const string InteractiveTrigger = "TRIGGER_Interactive";
+        public const string NearTrigger = "TRIGGER_Near";
+    }
+
     /// <summary>
     /// The names for a bird's needs
     /// </summary>
@@ -30,6 +38,6 @@ public class GlobalNames
     /// </summary>
     public class Events
     {
-        public const string BirdEnteredInteractiveTrigger = "birdEnteredInteractiveTrigger";
+        public const string UpdateMeasurements = "updateMeasurements";
     }
 }

@@ -59,10 +59,9 @@ public class FiniteStateMachine<T>
 			CurrentState.Execute( Owner );
 	}
 
-
 	public bool ChangeState( FSMState<T> NewState, bool forceChange = false )
 	{
-        if (NewState == CurrentState && !forceChange) 
+        if (NewState == CurrentState && !forceChange)
             return false;
 
 		PreviousState = CurrentState;

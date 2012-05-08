@@ -3,6 +3,7 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System;
 
 /// <summary>
 /// A bird can only gather information suited for birds.
@@ -24,7 +25,7 @@ public class Bird : Agent<BirdInformation>
 
     #region State related
     // the state machine
-    private FiniteStateMachine<Bird> FSM;
+    protected FiniteStateMachine<Bird> FSM;
     /// <summary>
     /// The bird's current state
     /// </summary>
@@ -33,6 +34,7 @@ public class Bird : Agent<BirdInformation>
     /// <summary>
     /// Handles movement
     /// </summary>
+    public BirdStateGlobal StateGlobal { get { return stateGlobal; } }
     private BirdStateGlobal stateGlobal;
     /// <summary>
     /// Handles exploring the environment
@@ -49,6 +51,11 @@ public class Bird : Agent<BirdInformation>
     /// </summary>
     public BirdStateFeed StateFeed { get { return stateFeed; } }
     private BirdStateFeed stateFeed;
+
+    /// <summary>
+    /// whether the bird should ignore other birds
+    /// </summary>
+    public virtual bool ignoreBirds { get { return settings.ignoreBirds; } }
 
     public Vector3 targetPoint;
     public float outsideEnvironmentMultiplier = 0;
@@ -115,8 +122,8 @@ public class Bird : Agent<BirdInformation>
     #endregion
 
     #region Methods
-    #region Start
-    private void Start ()
+    #region Awake
+    private void Awake ()
     {
         // set id
         id = nextFreeId++;
@@ -142,13 +149,14 @@ public class Bird : Agent<BirdInformation>
 
         gameObject.tag = GlobalNames.Tags.Bird;
 
-        // set communication settings here for debugging - delete when birds are created in environment
-        communicationSettings.equalityThreshold = 0.1f;
-        communicationSettings.certaintyThreshold = 0.0f;
-
         // set renderer colors
         renderer.material.color = currentColor = standardColorIdle;
 	}
+
+    private void Start()
+    {
+
+    }
     #endregion
 
     #region Update related
@@ -208,7 +216,7 @@ public class Bird : Agent<BirdInformation>
             1.0f - Mathf.Max(Information.Count * settings.informationNeedSaturationPerInfo, 0.0f);
 
         Needs[GlobalNames.Needs.Food] += settings.maxFoodCapacity / settings.saturationDecreaseIn * Time.deltaTime;
-        Needs[GlobalNames.Needs.Food] = Mathf.Max(Needs[GlobalNames.Needs.Food], 1.0f);
+        Needs[GlobalNames.Needs.Food] = Mathf.Min(Needs[GlobalNames.Needs.Food], 1.0f);
     }
 
     /// <summary>
@@ -271,10 +279,7 @@ public class Bird : Agent<BirdInformation>
 
             newInfo.certainty = CalculateCertainty(newInfo);
 
-            // calculate significancy and decide whether to store this info
-            float significancy = newInfo.certainty / communicationSettings.certaintyThreshold;
-
-            if (significancy >= settings.significancyThreshold)
+            if (newInfo.certainty >= communicationSettings.certaintyThreshold)
             {
                 Information.Add(newInfo);
             }
@@ -286,8 +291,20 @@ public class Bird : Agent<BirdInformation>
             {
                 ((IBirdState)FSM.CurrentState).FoundFood(newInfo.foodSourcePosition);
             }
+        }
+    }
+    #endregion
 
-            newInfo.DebugLogMe();
+    #region DiscreditFoodAt
+    public void DiscreditFoodAt(Vector3 position)
+    {
+        BirdInformation wrongInfo = Information.Find(
+            item => item.type == BirdInformation.BirdInformationType.FOOD && 
+                Vector3.Distance(item.foodSourcePosition, position) <= 0.001f);
+
+        if (wrongInfo != null)
+        {
+            Information.Remove(wrongInfo);
         }
     }
     #endregion
@@ -297,7 +314,7 @@ public class Bird : Agent<BirdInformation>
     /// Changes the bird's state
     /// </summary>
     /// <param name="state">the new state</param>
-    public void ChangeState(FSMState<Bird> state)
+    public virtual void ChangeState(FSMState<Bird> state)
     {
         FSM.ChangeState(state);
     }
@@ -338,18 +355,14 @@ public class Bird : Agent<BirdInformation>
     /// Eats as much as possible regarding bird's food capacity and amount of food ready for disposal
     /// </summary>
     /// <param name="food">The food source</param>
-    public void Feed(Food food)
+    public void Eat(Food food)
     {
-        // does the bird want to eat?
-        if (Needs[GlobalNames.Needs.Food] > settings.eatingThreshold)
-        {
-            // eat until the bird is full
-            float request = Needs[GlobalNames.Needs.Food] * settings.maxFoodCapacity;
-            float meal = food.Eat(request);
-            Needs[GlobalNames.Needs.Food] -= meal / settings.maxFoodCapacity;
-            Debug.Log("(" + id + ")Eating: \n" + "requested: " + request + " got: " + meal);
-            GatherInformation(food.Information);
-        }
+        // eat until the bird is full
+        float request = Needs[GlobalNames.Needs.Food] * settings.maxFoodCapacity;
+        float meal = food.Eat(request);
+        Needs[GlobalNames.Needs.Food] -= meal / settings.maxFoodCapacity;
+        //Debug.Log("(" + id + ")Eating: \n" + "requested: " + request + " got: " + meal);
+        GatherInformation(food.Information);
     }
     #endregion
 
@@ -360,13 +373,10 @@ public class Bird : Agent<BirdInformation>
     /// <param name="other">The communication partner</param>
     public virtual bool Communicate(Bird other)
     {
-        // only if the bird is not (hungry and informed)
-        if (!(Needs[GlobalNames.Needs.Food] > settings.eatingThreshold && 
-            Needs[GlobalNames.Needs.Information] < settings.informationThreshold ))
+        if (!ignoreBirds)
         {
-            //HighlightBird(highlightCommunication);
             ChangeState(StateCommunicate);
-            stateCommunicate.AddCommunicationPartner(other);
+            StateCommunicate.AddCommunicationPartner(other);
             return true;
         }
         return false;
@@ -378,9 +388,9 @@ public class Bird : Agent<BirdInformation>
     /// <param name="other">the bird which has given all info</param>
     public void GivenAllInfo(Bird other)
     {
-        if (FSM.CurrentState == stateCommunicate)
+        if (FSM.CurrentState == StateCommunicate)
         {
-            stateCommunicate.GivenAllInfo(other);
+            StateCommunicate.GivenAllInfo(other);
         }
     }
 
@@ -390,9 +400,9 @@ public class Bird : Agent<BirdInformation>
     /// <param name="other">the bird with which to abort communications</param>
     public void AbortCommunication(Bird other)
     {
-        if (FSM.CurrentState == stateCommunicate)
+        if (FSM.CurrentState == StateCommunicate)
         {
-            stateCommunicate.RemoveCommunicationPartner(other);
+            StateCommunicate.RemoveCommunicationPartner(other);
         }
     }
 
@@ -404,9 +414,10 @@ public class Bird : Agent<BirdInformation>
     {
         if (Communicate(other))
         {
-            stateCommunicate.AddToInformationRecipients(other);
+            StateCommunicate.AddToInformationRecipients(other);
         }
     }
     #endregion
     #endregion
+
 }

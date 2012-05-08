@@ -13,6 +13,6 @@ public class GossipBird : Bird
     private void Start()
     {
         communicationSettings.equalityThreshold = 0.1f;
-        communicationSettings.certaintyThreshold = 0.0f;
+        communicationSettings.certaintyThreshold = 0.1f;
     }
 }

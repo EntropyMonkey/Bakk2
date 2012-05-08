@@ -26,4 +26,9 @@ public struct BirdEnvironmentSettings
     /// The environment's bounds
     /// </summary>
     public Bounds bounds { get; set; }
+
+    /// <summary>
+    /// The time between measuring the current status of the system
+    /// </summary>
+    public float measureTimeout { get; set; }
 }

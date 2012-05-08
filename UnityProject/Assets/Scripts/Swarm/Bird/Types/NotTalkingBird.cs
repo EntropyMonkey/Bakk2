@@ -9,6 +9,7 @@ public class NotTalkingBird : Bird
 {
     public override bool Communicate(Bird other)
     {
+        other.AbortCommunication(this);
         return false;
     }
 }

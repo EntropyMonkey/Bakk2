@@ -31,6 +31,14 @@ public class BirdStateCommunicate : IBirdState
     /// </summary>
     private Bird owner;
 
+    public new BirdMovementSettings movementSettings = new BirdMovementSettings
+    {
+        cohesionMultiplier = 1.0f,
+        separatingMultiplier = 2.0f,
+        targetMultiplier = 0.5f,
+        aligningMultiplier = 2.0f,
+    };
+
     public override void Enter(Bird owner)
     {
         this.owner = owner;
@@ -42,11 +50,7 @@ public class BirdStateCommunicate : IBirdState
         nextAnswerRecipientQueue = new ExtendedQueue<CommunicationPartner>();
         communicationPartners = new List<CommunicationPartner>();
 
-        cohesionMultiplier = 0.6f;
-        separatingMultiplier = 0.4f;
-        targetMultiplier = 0.0f;
-        aligningMultiplier = 0.9f;
-
+        owner.targetPoint = BirdEnvironment.settings.bounds.center;
     }
 
     public override void Execute(Bird owner)
@@ -70,6 +74,9 @@ public class BirdStateCommunicate : IBirdState
                 }
                 else if (owner.Information.Count == 0)
                 {
+                    if (nextPartnerToAsk >= communicationPartners.Count)
+                        nextPartnerToAsk = 0;
+
                     NoInformationToReceiveFromMe(communicationPartners[nextPartnerToAsk]);
                     // the count can change when calling the above function. If this is the case,
                     // the state has already exited and this method should not be executed any longer
@@ -102,9 +109,17 @@ public class BirdStateCommunicate : IBirdState
         }
 
         // handle state change
-        if (owner.Hungry && owner.Informed)
+        if (owner.Hungry)
         {
-            owner.ChangeState(owner.StateFeed);
+            if (owner.Information.Count > 0)
+            {
+                owner.ChangeState(owner.StateFeed);
+            }
+            // change state when there is no more information to get
+            else
+            {
+                owner.ChangeState(owner.StateExplore);
+            }
         }
     }
 
@@ -143,12 +158,6 @@ public class BirdStateCommunicate : IBirdState
             {
                 RemoveCommunicationPartner(partner);
             }
-
-            // change state when there is no more information to get
-            if (owner.Hungry && communicationPartners.Count == 0)
-            {
-                owner.ChangeState(owner.StateExplore);
-            }
         }
     }
 
@@ -159,6 +168,9 @@ public class BirdStateCommunicate : IBirdState
     {
         if (communicationPartners.Count > 0)
         {
+            if (nextPartnerToAsk >= communicationPartners.Count)
+                nextPartnerToAsk = 0;
+
             // register at the next partner to ask for receiving information
             communicationPartners[nextPartnerToAsk].bird.AskForInformation(owner);
 

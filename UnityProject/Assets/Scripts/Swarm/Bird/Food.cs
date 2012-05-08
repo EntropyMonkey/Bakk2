@@ -103,6 +103,7 @@ public class Food : MonoBehaviour, IOfferInformation<BirdInformation>
     public float Eat(float requestedAmount)
     {
         HighlightFood(eatingHighlightColor);
+        standardColor = Color.magenta;
 
         float realAmount = requestedAmount;
 
@@ -113,11 +114,13 @@ public class Food : MonoBehaviour, IOfferInformation<BirdInformation>
         }
 
         AmountOfFood -= realAmount;
+        Environment.RemoveFood(realAmount);
 
-        // remove eaten food
+        // remove food
         if (AmountOfFood <= 0.0f)
         {
             Environment.RemoveFood(this);
+            standardColor = Color.green;
         }
 
         return realAmount;

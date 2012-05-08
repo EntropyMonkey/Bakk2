@@ -3,6 +3,13 @@ using System.Collections;
 
 public class NearTrigger : BirdTrigger {
 
+    new void Awake()
+    {
+        base.Awake();
+        Physics.IgnoreCollision(collider, transform.parent.FindChild(GlobalNames.Names.InteractiveTrigger).collider);
+        Physics.IgnoreCollision(collider, transform.parent.FindChild(GlobalNames.Names.VisibleTrigger).collider);
+    }
+
     void OnTriggerEnter(Collider other)
     {
         // if its a bird, try to enter communication state

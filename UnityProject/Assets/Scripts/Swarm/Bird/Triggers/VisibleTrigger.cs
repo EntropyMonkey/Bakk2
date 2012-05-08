@@ -2,10 +2,13 @@ using UnityEngine;
 using System.Collections;
 
 public class VisibleTrigger : BirdTrigger {
-
-    new void Start()
+        
+    new void Awake()
     {
-        base.Start();
+        base.Awake();
+
+        Physics.IgnoreCollision(collider, transform.parent.FindChild(GlobalNames.Names.InteractiveTrigger).collider);
+        Physics.IgnoreCollision(collider, transform.parent.FindChild(GlobalNames.Names.NearTrigger).collider);    
     }
 
     void OnTriggerEnter(Collider other)
@@ -17,6 +20,11 @@ public class VisibleTrigger : BirdTrigger {
             if (genericComponents != null && genericComponents.iOfferBirdInformation != null)
             {
                 owner.GatherInformation(genericComponents.iOfferBirdInformation.Information);
+
+                if (genericComponents.iOfferBirdInformation.Information.type == BirdInformation.BirdInformationType.FOOD)
+                {
+                    other.gameObject.GetComponent<Food>().Eat(0);
+                }
             }
         }
         
