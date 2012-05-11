@@ -6,31 +6,37 @@ using System;
 /// </summary>
 public class BirdStateExplore : IBirdState
 {
-    private Bird owner;
-
     private float changeDirectionTimer;
-
-    private float changeStateTimer;
 
     private float cohesionToggleTimer;
 
-    public new BirdMovementSettings movementSettings = new BirdMovementSettings
+    protected new static BirdMovementSettings moveSettings = new BirdMovementSettings
     {
         // set force multipliers
-        cohesionMultiplier = 1.0f,
-        separatingMultiplier = 2.0f,
-        targetMultiplier = 0.5f,
+        cohesionMultiplier = -5.0f,
+        separatingMultiplier = 1.0f,
+        targetMultiplier = 0.1f,
         aligningMultiplier = 1.0f,
-
     };
+    public override BirdMovementSettings movementSettings
+    {
+        get { return moveSettings; }
+    }
+
+    private void OnEnable()
+    {
+    }
+
     public override void Enter(Bird owner)
     {
+        birdsExploring++;
+
         standardColor = owner.standardColorIdle;
-        this.owner = owner;
+
+        moveSettings.cohesionMultiplier = -5.0f;
 
         //owner.StateGlobal.ChangeDirection();
         changeDirectionTimer = 0;
-        changeStateTimer = 0;
         cohesionToggleTimer = 0;
     }
 
@@ -39,13 +45,12 @@ public class BirdStateExplore : IBirdState
         cohesionToggleTimer += Time.deltaTime;
         if (cohesionToggleTimer > Bird.settings.explore_changeCohesionAfter)
         {
-            movementSettings.cohesionMultiplier = 0.2f;
+            moveSettings.cohesionMultiplier = moveSettings.cohesionMultiplier == 2.0f ? -5.0f : 2.0f;
+            cohesionToggleTimer = 0;
         }
-
-        changeStateTimer += Time.deltaTime;
+        
         // state change
-        if (changeStateTimer >= Bird.settings.explore_minStateTime &&
-            owner.Hungry && owner.Information.Count > 0)
+        if (owner.Hungry && owner.Information.Count > 0)
         {
             owner.ChangeState(owner.StateFeed);
         }
@@ -65,20 +70,10 @@ public class BirdStateExplore : IBirdState
         {
             owner.ChangeState(owner.StateFeed);
         }
-        // not hungry but informed -> communicate
-        else if (!owner.ignoreBirds && owner.Informed)
-        {
-            owner.ChangeState(owner.StateCommunicate);
-        }
     }
 
     public override void FoundBird(Transform bird)
     {
-        // talk
-        if (!owner.ignoreBirds)
-        {
-            owner.ChangeState(owner.StateCommunicate);
-        }
     }
 
     public override void Exit(Bird owner)

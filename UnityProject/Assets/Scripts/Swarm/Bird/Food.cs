@@ -9,6 +9,17 @@ public class Food : MonoBehaviour, IOfferInformation<BirdInformation>
     public static int nextFreeId = 0;
     public int id;
 
+    public static int discoveredFood = 0;
+    private float discoveredTimestamp = 0;
+    public bool discovered
+    {
+        get
+        {
+            return discoveredTimestamp > 0;
+        }
+    }
+    public float discoverTimestamp { get { return discoveredTimestamp; } }
+
     public static FoodSettings settings;
 
     public BirdInformation Information { get; set; }
@@ -35,6 +46,14 @@ public class Food : MonoBehaviour, IOfferInformation<BirdInformation>
     public float amount;
 
     private float timeToLive;
+    private float spawnTimestamp;
+    public float timeAlife
+    {
+        get
+        {
+            return Time.time - spawnTimestamp;
+        }
+    }
 
     // color/highlighting
     private Color currentColor;
@@ -46,9 +65,6 @@ public class Food : MonoBehaviour, IOfferInformation<BirdInformation>
     private void Awake()
     {
         gameObject.tag = GlobalNames.Tags.IOfferInformation;
-
-        // set timer
-        timeToLive = settings.timeAlive;
 
         id = nextFreeId++;
 
@@ -65,24 +81,41 @@ public class Food : MonoBehaviour, IOfferInformation<BirdInformation>
             type = BirdInformation.BirdInformationType.FOOD,
             foodSourcePosition = Vector3.zero,
             foodSourceSize = -1,
+            foodId = id,
         };
 
         standardColor = currentColor = renderer.material.color;
-        currentBlendingTime = 0;
     }
 
     private void Start()
     {
+    }
+
+    private void OnEnable()
+    {
         // position is reset before start is called
         Information.foodSourcePosition = transform.position;
-        Information.foodId = id;
+
+        currentBlendingTime = 0;
+
+        // set timer
+        spawnTimestamp = Time.time;
+        timeToLive = Random.Range(settings.minTimeAlive, settings.maxTimeAlive);
+        discoveredTimestamp = 0;
     }
 
     private void Update()
     {
         timeToLive -= Time.deltaTime;
         if (timeToLive <= 0.0f)
-            Destroy(gameObject);
+        {
+            Environment.RemoveFood(this);
+            standardColor = Color.green;
+            if (discovered)
+            {
+                discoveredFood--;
+            }
+        }
 
         // update color
         currentBlendingTime += Time.deltaTime;
@@ -103,7 +136,20 @@ public class Food : MonoBehaviour, IOfferInformation<BirdInformation>
     public float Eat(float requestedAmount)
     {
         HighlightFood(eatingHighlightColor);
-        standardColor = Color.magenta;
+
+        // if called with zero requested amount, the food source has been sighted
+        if (requestedAmount == 0)
+        {
+            standardColor = Color.magenta;
+
+            if (!discovered)
+            {
+                discoveredTimestamp = Time.time;
+                discoveredFood++;
+            }
+
+            return 0;
+        }
 
         float realAmount = requestedAmount;
 
@@ -117,9 +163,13 @@ public class Food : MonoBehaviour, IOfferInformation<BirdInformation>
         Environment.RemoveFood(realAmount);
 
         // remove food
-        if (AmountOfFood <= 0.0f)
+        if (AmountOfFood <= settings.minAmountOfFood)
         {
             Environment.RemoveFood(this);
+            if (discovered)
+            {
+                discoveredFood--;
+            }
             standardColor = Color.green;
         }
 

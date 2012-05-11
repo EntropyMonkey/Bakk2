@@ -9,19 +9,25 @@ public class BirdStateFeed : IBirdState
     private float feedStateTimer;
     public float FeedStateTimer { get { return feedStateTimer; } }
 
-    public new BirdMovementSettings movementSettings = new BirdMovementSettings
+    protected new static BirdMovementSettings moveSettings = new BirdMovementSettings
     {
-        cohesionMultiplier = 1.0f,
-        separatingMultiplier = 2.0f,
-        targetMultiplier = 10.0f,
-        aligningMultiplier = 1.0f,
+        cohesionMultiplier = 0.0f,
+        separatingMultiplier = 0.0f,
+        targetMultiplier = 50.0f,
+        aligningMultiplier = 0.0f,
     };
+    public override BirdMovementSettings movementSettings
+    {
+        get { return moveSettings; }
+    }
 
-    private Bird owner;
+    private void OnEnable()
+    {
+    }
 
     public override void Enter(Bird owner)
     {
-        this.owner = owner;
+        birdsFeeding++;
 
         standardColor = owner.standardColorFeeding;
 
@@ -55,22 +61,22 @@ public class BirdStateFeed : IBirdState
                 minDistance = currentDistance;
             }
         }
-
         return position;
     }
 
     public override void Execute(Bird owner)
     {
-        feedStateTimer += Time.deltaTime;
 
-        if (owner.Information.Count == 0 || feedStateTimer >= Bird.settings.feed_exploreAfter)
+        if (owner.Information.Count == 0 || !owner.Hungry)
         {
             owner.ChangeState(owner.StateExplore);
         }
-
+            
+        feedStateTimer += Time.deltaTime;
         // delete information if it is wrong
         if (Vector3.Distance(owner.transform.position, owner.targetPoint) <= 
-            Bird.settings.feed_discreditInfoDistance)
+            Bird.settings.feed_discreditInfoDistance || 
+            feedStateTimer >= Bird.settings.feed_discreditInfoAfterTimeInState)
         {
             if (owner.Hungry)
             {
@@ -87,21 +93,15 @@ public class BirdStateFeed : IBirdState
             }
             else
             {
-                if (!owner.ignoreBirds && owner.Informed)
-                {
-                    owner.ChangeState(owner.StateCommunicate);
-                }
-                else
-                {
-                    owner.ChangeState(owner.StateExplore);
-                }
+                owner.ChangeState(owner.StateExplore);
             }
         }
     }
 
     public override void FoundFood(Vector3 position)
     {
-        owner.targetPoint = position;
+        // set new target to where food was sighted
+        //owner.targetPoint = position;
     }
 
     public override void FoundBird(Transform birdTransform)

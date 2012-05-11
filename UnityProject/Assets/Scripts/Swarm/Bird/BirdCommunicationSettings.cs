@@ -17,4 +17,13 @@ public struct BirdCommunicationSettings : IPropagationSettings
     /// How equal two pieces of information must be to be seen as equal
     /// </summary>
     public float equalityThreshold { get; set; }
+
+    public override string ToString()
+    {
+        string s = "";
+        s += "BirdCommunicationSettings: \n" +
+            "certaintyThreshold " + certaintyThreshold + "\n" +
+            "equalityThreshold " + equalityThreshold + "\n" + "\n";
+        return s;
+    }
 }

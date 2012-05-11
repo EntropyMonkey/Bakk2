@@ -31,16 +31,27 @@ public class BirdStateCommunicate : IBirdState
     /// </summary>
     private Bird owner;
 
-    public new BirdMovementSettings movementSettings = new BirdMovementSettings
+    protected new static BirdMovementSettings moveSettings = new BirdMovementSettings
     {
-        cohesionMultiplier = 1.0f,
-        separatingMultiplier = 2.0f,
+        cohesionMultiplier = 2.0f,
+        separatingMultiplier = 1.0f,
         targetMultiplier = 0.5f,
         aligningMultiplier = 2.0f,
     };
+    public override BirdMovementSettings movementSettings
+    {
+        get { return moveSettings; }
+    }
+
+    private void OnEnable()
+    {
+        Messenger.AddListener(GlobalNames.Events.UpdateMeasurements, UpdateMeasurements);
+    }
 
     public override void Enter(Bird owner)
     {
+        birdsCommunicating++;
+
         this.owner = owner;
 
         // set color
@@ -50,6 +61,7 @@ public class BirdStateCommunicate : IBirdState
         nextAnswerRecipientQueue = new ExtendedQueue<CommunicationPartner>();
         communicationPartners = new List<CommunicationPartner>();
 
+        // center of environment is "meeting" point
         owner.targetPoint = BirdEnvironment.settings.bounds.center;
     }
 
@@ -72,7 +84,7 @@ public class BirdStateCommunicate : IBirdState
 
                     next.bird.GatherInformation(owner.Information[next.currentIndex]);
                 }
-                else if (owner.Information.Count == 0)
+                else
                 {
                     if (nextPartnerToAsk >= communicationPartners.Count)
                         nextPartnerToAsk = 0;
@@ -109,17 +121,9 @@ public class BirdStateCommunicate : IBirdState
         }
 
         // handle state change
-        if (owner.Hungry)
+        if (owner.Hungry && owner.Information.Count > 0)
         {
-            if (owner.Information.Count > 0)
-            {
-                owner.ChangeState(owner.StateFeed);
-            }
-            // change state when there is no more information to get
-            else
-            {
-                owner.ChangeState(owner.StateExplore);
-            }
+            owner.ChangeState(owner.StateFeed);
         }
     }
 

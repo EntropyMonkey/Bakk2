@@ -11,6 +11,22 @@ using System;
 public class Bird : Agent<BirdInformation>
 {
     #region Members
+
+    #region Measurement
+    /// <summary>
+    /// counts the information hops each time when updating measurements
+    /// </summary>
+    public static float averageInformationHops = 0;
+    /// <summary>
+    /// average age of all information possessed by birds
+    /// </summary>
+    public static float averageInformationAge = 0;
+    /// <summary>
+    /// average certainty of all information possessed by birds
+    /// </summary>
+    public static float averageInformationCertainty = 0;
+    #endregion
+
     #region Id
     // id
     private static int nextFreeId = 0;
@@ -55,7 +71,7 @@ public class Bird : Agent<BirdInformation>
     /// <summary>
     /// whether the bird should ignore other birds
     /// </summary>
-    public virtual bool ignoreBirds { get { return settings.ignoreBirds; } }
+    public virtual bool ignoreBirds { get { return settings.ignoreBirdCommunication; } }
 
     public Vector3 targetPoint;
     public float outsideEnvironmentMultiplier = 0;
@@ -83,17 +99,11 @@ public class Bird : Agent<BirdInformation>
     {
         get
         {
-            return Needs[GlobalNames.Needs.Food] > Bird.settings.eatingThreshold;
+            return Needs[GlobalNames.Needs.Food] > Bird.settings.foodThreshold;
         }
     }
 
-    public bool Informed
-    {
-        get
-        {
-            return Needs[GlobalNames.Needs.Information] < Bird.settings.informationThreshold;
-        }
-    }
+    public bool WasHungry { get; set; }
     #endregion
 
     #region Settings
@@ -119,6 +129,7 @@ public class Bird : Agent<BirdInformation>
     public float blendingTime; // how long the blending needs (total)
     private float currentBlendingTime; // how long it has been blending up to now (state of the art)
     #endregion
+
     #endregion
 
     #region Methods
@@ -144,14 +155,23 @@ public class Bird : Agent<BirdInformation>
 
         // initialize needs
         Needs = new Dictionary<string, float>();
-        Needs.Add(GlobalNames.Needs.Food, 1.0f);
-        Needs.Add(GlobalNames.Needs.Information, 1.0f);
+        Needs.Add(GlobalNames.Needs.Food, 0.0f);
 
         gameObject.tag = GlobalNames.Tags.Bird;
 
         // set renderer colors
         renderer.material.color = currentColor = standardColorIdle;
+
+        // events
+        Messenger.AddListener(GlobalNames.Events.UpdateMeasurements, UpdateMeasurements);
+
+        InitializeCommunicationSettings();
 	}
+
+    protected override void InitializeCommunicationSettings()
+    {
+        GameObject.Find(GlobalNames.Names.Environment).GetComponent<Measurement>().communicationSettings = communicationSettings;
+    }
 
     private void Start()
     {
@@ -160,7 +180,7 @@ public class Bird : Agent<BirdInformation>
     #endregion
 
     #region Update related
-    private void Update () 
+    private void Update ()
     {
         // update movement and state changes
         FSM.Update();
@@ -190,7 +210,6 @@ public class Bird : Agent<BirdInformation>
     {
         // for debugging purposes
         SaturationStat = 1.0f - Needs[GlobalNames.Needs.Food];
-        InfoStat = 1.0f - Needs[GlobalNames.Needs.Information];
     }
 
     /// <summary>
@@ -203,7 +222,10 @@ public class Bird : Agent<BirdInformation>
         {
             if (CalculateCertainty(Information[i]) < communicationSettings.certaintyThreshold ||
                 Information[i].age > settings.maxAge)
+            {
+                Information[i].OnDestroy();
                 Information.Remove(Information[i]);
+            }
         }
     }
 
@@ -212,11 +234,37 @@ public class Bird : Agent<BirdInformation>
     /// </summary>
     private void UpdateNeeds()
     {
-        Needs[GlobalNames.Needs.Information] =
-            1.0f - Mathf.Max(Information.Count * settings.informationNeedSaturationPerInfo, 0.0f);
-
         Needs[GlobalNames.Needs.Food] += settings.maxFoodCapacity / settings.saturationDecreaseIn * Time.deltaTime;
         Needs[GlobalNames.Needs.Food] = Mathf.Min(Needs[GlobalNames.Needs.Food], 1.0f);
+
+        if (Hungry)
+            WasHungry = true;
+    }
+
+    /// <summary>
+    /// called by birdenvironment via event
+    /// </summary>
+    /// <param name="data">the data to be updated</param>
+    private void UpdateMeasurements()
+    {
+        if (Information.Count == 0)
+            return;
+
+        if (Bird.averageInformationHops == 0)
+            Bird.averageInformationHops = Information[0].hops;
+
+        if (Bird.averageInformationAge == 0)
+            Bird.averageInformationAge = Information[0].age;
+
+        if (Bird.averageInformationCertainty == 0)
+            Bird.averageInformationCertainty = Information[0].certainty;
+
+        foreach (BirdInformation info in Information)
+        {
+            Bird.averageInformationHops = (info.hops + Bird.averageInformationHops) * 0.5f;
+            Bird.averageInformationAge = (info.age + Bird.averageInformationAge) * 0.5f;
+            Bird.averageInformationCertainty = (info.certainty + Bird.averageInformationCertainty) * 0.5f;
+        }
     }
 
     /// <summary>
@@ -255,9 +303,8 @@ public class Bird : Agent<BirdInformation>
     {
         BirdInformation sameInfo = Information.Find(item => 
             item.MeasureEquality(information) < communicationSettings.equalityThreshold);
-        
+
         if (information != null &&
-            Needs[GlobalNames.Needs.Information] > settings.informationThreshold &&
             // only gather info if it is not yet in the list
             sameInfo == null)
         {
@@ -278,6 +325,9 @@ public class Bird : Agent<BirdInformation>
             }
 
             newInfo.certainty = CalculateCertainty(newInfo);
+
+            //if (newInfo.hops > 0)
+            //    Debug.Log(newInfo.hops + " - " + newInfo.certainty);
 
             if (newInfo.certainty >= communicationSettings.certaintyThreshold)
             {
@@ -305,6 +355,7 @@ public class Bird : Agent<BirdInformation>
         if (wrongInfo != null)
         {
             Information.Remove(wrongInfo);
+            wrongInfo.OnDestroy();
         }
     }
     #endregion
@@ -373,7 +424,7 @@ public class Bird : Agent<BirdInformation>
     /// <param name="other">The communication partner</param>
     public virtual bool Communicate(Bird other)
     {
-        if (!ignoreBirds)
+        if (!ignoreBirds && CurrentState != StateFeed)
         {
             ChangeState(StateCommunicate);
             StateCommunicate.AddCommunicationPartner(other);

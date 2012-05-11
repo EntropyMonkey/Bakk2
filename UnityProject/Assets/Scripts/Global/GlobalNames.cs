@@ -14,6 +14,7 @@ public class GlobalNames
     {
         public const string IOfferInformation = "IOfferInformation";
         public const string Bird = "Bird";
+        public const string Environment = "Environment";
     }
 
     public class Names
@@ -22,6 +23,9 @@ public class GlobalNames
         public const string VisibleTrigger = "TRIGGER_Visible";
         public const string InteractiveTrigger = "TRIGGER_Interactive";
         public const string NearTrigger = "TRIGGER_Near";
+        public const string Communication_MovementSettings = "Communication_MovementSettings";
+        public const string Explore_MovementSettings = "Explore_MovementSettings";
+        public const string Feed_MovementSettings = "Feed_MovementSettings";
     }
 
     /// <summary>
@@ -30,7 +34,6 @@ public class GlobalNames
     public class Needs
     {
         public const string Food = "food";
-        public const string Information = "information";
     }
 
     /// <summary>

@@ -11,7 +11,7 @@ public class BirdEnvironment : Environment<BirdInformation>
 {
     public Transform FoodPrefab;
     public Transform BirdPrefab;
-    public bool ignoreBirds;
+    public bool ignoreBirdCommunication;
     public int numberOfBirds;
     public float foodPercentage;
 
@@ -21,14 +21,16 @@ public class BirdEnvironment : Environment<BirdInformation>
     private const int initialFood = 20;
     private List<Food> foodPool;
     private List<Food> distributedFood;
-    private float currentDistributedAmountOfFood = 0;
-    private float foodTimer = 0;
+    public float currentDistributedAmountOfFood = 0;
+    private int spawnedFoodSinceLastMeasurement = 0;
+    private int removedFoodSinceLastMeasurement = 0;
 	
     // birds
-    private List<GameObject> birds;
+    private List<Bird> birds;
     private float currentAmountOfBirds = 0;
 
     // measurement
+    public Measurement measurement { get; set; }
     private float measurementTimer;
 
     private void Start () 
@@ -36,25 +38,24 @@ public class BirdEnvironment : Environment<BirdInformation>
         // set bird settings
         Bird.settings = new BirdSettings
         {
-            maxAge = 60.0f,
-            maxHops = 2,
-            eatingThreshold = 0.5f,
+            maxAge = 6000000,
+            maxHops = 10,
+            foodThreshold = 0.2f,
             saturationDecreaseIn = 240.0f,
             informationThreshold = 0.5f,
-            informationNeedSaturationPerInfo = 1.0f,
+            informationNeedSaturationPerInfo = 0.0f,
             maxFoodCapacity = 2.0f,
             timeout = 0.2f,
-            ignoreBirds = ignoreBirds,
+            ignoreBirdCommunication = ignoreBirdCommunication,
 
             maxVelocity = 20.0f,
             minVelocity = 10.0f,
 
             explore_changeDirectionAfter = 10.0f,
-            explore_minStateTime = 1.0f,
-            explore_changeCohesionAfter = 2.0f,
+            explore_changeCohesionAfter = 5.0f,
 
-            feed_discreditInfoDistance = 2.0f,
-            feed_exploreAfter = 10.0f,
+            feed_discreditInfoDistance = 0.5f,
+            feed_discreditInfoAfterTimeInState = 5.0f,
         };
 
         // set environment settings
@@ -64,6 +65,7 @@ public class BirdEnvironment : Environment<BirdInformation>
             bounds = collider.bounds,
             distributeFoodAfterSeconds = 2.0f,
             measureTimeout = 5.0f,
+            maxMeasureTime = 840.0f,
         };
         settings.maxDistributedAmountOfFood = Bird.settings.maxFoodCapacity * settings.maxBirds * foodPercentage;
 
@@ -71,9 +73,11 @@ public class BirdEnvironment : Environment<BirdInformation>
         Food.settings = new FoodSettings
         {
             // a single food source can never have more than 10% of the whole amount of food
-            maxAmountOfFood = settings.maxDistributedAmountOfFood * 0.1f, 
-            maxScale = 10.0f,
-            timeAlive = 60.0f,
+            maxAmountOfFood = settings.maxDistributedAmountOfFood * 0.1f,
+            minAmountOfFood = settings.maxDistributedAmountOfFood * 0.1f * 0.5f,
+            maxScale = 10.0f * foodPercentage,
+            maxTimeAlive = 60.0f,
+            minTimeAlive = 60.0f,
         };
 
         // set the maximum difference two pieces of information about food can exhibit after having defined
@@ -95,19 +99,38 @@ public class BirdEnvironment : Environment<BirdInformation>
             DistributeFood(gameObject.collider.bounds);
         }
 
-        birds = new List<GameObject>();
+        // create birds
+        birds = new List<Bird>();
 
         while (currentAmountOfBirds < settings.maxBirds)
         {
             CreateBird(gameObject.collider.bounds);
         }
+
+        // set measurement data
+        measurement = GetComponent<Measurement>();
+        measurement.environmentSettings = settings;
+        measurement.birdSettings = Bird.settings;
+        measurement.foodSettings = Food.settings;
+        measurementTimer = 0;
 	}
  
     private void Update() 
     {
         ManageFood();
 
-        UpdateMeasurements();
+        measurementTimer += Time.deltaTime;
+        if (measurementTimer > settings.measureTimeout)
+        {
+            if (Time.time > settings.maxMeasureTime)
+            {
+                Debug.Break();
+                measurement.SaveData();
+            }
+
+            UpdateMeasurements();
+            measurementTimer = 0;
+        }
 	}
 
     private void OnTriggerEnter(Collider other)
@@ -133,30 +156,79 @@ public class BirdEnvironment : Environment<BirdInformation>
     #region Measuring
     private void UpdateMeasurements()
     {
-        measurementTimer -= Time.deltaTime;
-        if (measurementTimer <= 0.0f)
+        // create new measure data
+        MeasureData data = new MeasureData
         {
-            measurementTimer = settings.measureTimeout;
-            Messenger.Invoke(GlobalNames.Events.UpdateMeasurements);
+            timestamp = Time.time,
+        };
+
+        // count hungry birds
+        foreach (Bird bird in birds)
+        {
+            if (bird.WasHungry)
+            {
+                data.hungryBirds++;
+                bird.WasHungry = false;
+            }
         }
+
+        // set average food life time and discovered food count
+        float averageLifeTime = 0;
+        foreach (Food food in distributedFood)
+        {
+            if (food.discovered)
+            {
+                data.discoveredFood++;
+                data.averageDiscoveryDuration += food.discoverTimestamp;
+            }
+
+            averageLifeTime += food.timeAlife;
+        }
+        averageLifeTime /= distributedFood.Count;
+        data.averageDiscoveryDuration /= distributedFood.Count;
+
+        // set spawned food and removed food counts
+        data.spawnedFood = spawnedFoodSinceLastMeasurement;
+        data.removedFood = removedFoodSinceLastMeasurement;
+        spawnedFoodSinceLastMeasurement = 0;
+        removedFoodSinceLastMeasurement = 0;
+
+        // set bird state counts
+        data.feedingBirds = IBirdState.birdsFeeding;
+        data.exploringBirds = IBirdState.birdsExploring;
+        data.communicatingBirds = IBirdState.birdsCommunicating;
+
+        // set average duplicates
+        int duplicates = 0;
+        foreach (KeyValuePair<int,int> kvp in BirdInformation.foodIdCounts)
+        {
+            duplicates += kvp.Value;
+        }
+        data.averageDuplicatesPerInformation = (float)duplicates / BirdInformation.foodIdCounts.Count;
+
+        // invoke update event
+        Messenger.Invoke(GlobalNames.Events.UpdateMeasurements);
+
+        // set data with recently changed information
+        data.averageHops = Bird.averageInformationHops;
+        Bird.averageInformationHops = 0;
+
+        data.averageInformationAge = Bird.averageInformationAge;
+        Bird.averageInformationAge = 0;
+
+        data.averageInformationCertainty = Bird.averageInformationCertainty;
+        Bird.averageInformationCertainty = 0;
+
+        measurement.AddData(data);
     }
     #endregion
 
     #region Birds
     private void CreateBird(Bounds bounds)
     {
-        Vector3 randomPosition = Vector3.zero;
-        // calculate random position
-        randomPosition.x =
-            Random.Range(bounds.center.x - bounds.extents.x, bounds.center.x + bounds.extents.x);
-        randomPosition.y =
-            Random.Range(bounds.center.y - bounds.extents.y, bounds.center.y + bounds.extents.y);
-        randomPosition.z =
-            Random.Range(bounds.center.z - bounds.extents.z, bounds.center.z + bounds.extents.z);
-
-        Transform instantiatedPrefab = (Transform)Instantiate(BirdPrefab, randomPosition, Quaternion.identity);
+        Transform instantiatedPrefab = (Transform)Instantiate(BirdPrefab, bounds.center, Quaternion.identity);
         instantiatedPrefab.gameObject.active = true;
-        birds.Add(instantiatedPrefab.gameObject);
+        birds.Add(instantiatedPrefab.gameObject.GetComponent<Bird>());
         currentAmountOfBirds++;
     }
     #endregion
@@ -164,11 +236,9 @@ public class BirdEnvironment : Environment<BirdInformation>
     #region Food
     private void ManageFood()
     {
-        foodTimer -= Time.deltaTime;
-
-        if (foodTimer <= 0.0f && currentDistributedAmountOfFood < settings.maxDistributedAmountOfFood)
+        while (currentDistributedAmountOfFood < settings.maxDistributedAmountOfFood &&
+            settings.maxDistributedAmountOfFood - currentDistributedAmountOfFood > Food.settings.minAmountOfFood)
         {
-            foodTimer = settings.distributeFoodAfterSeconds;
             DistributeFood(gameObject.collider.bounds);
         }
     }
@@ -223,6 +293,8 @@ public class BirdEnvironment : Environment<BirdInformation>
 
         currentDistributedAmountOfFood += freeFood.AmountOfFood;
         distributedFood.Add(freeFood);
+
+        spawnedFoodSinceLastMeasurement++;
     }
 
     /// <summary>
@@ -232,13 +304,14 @@ public class BirdEnvironment : Environment<BirdInformation>
     public void RemoveFood(Food instance)
     {
         instance.gameObject.active = false;
+        currentDistributedAmountOfFood -= instance.amount;
         distributedFood.Remove(instance);
-        foodTimer = 0;
     }
 
     public void RemoveFood(float amount)
     {
         currentDistributedAmountOfFood -= amount;
+        removedFoodSinceLastMeasurement++;
     }
     #endregion
 }

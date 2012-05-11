@@ -7,9 +7,10 @@ using System;
 public struct FoodSettings
 {
     /// <summary>
-    /// The maximum amount of food a source can hold
+    /// The amount of food a source can hold
     /// </summary>
     public float maxAmountOfFood { get; set; }
+    public float minAmountOfFood { get; set; }
 
     /// <summary>
     /// The foodsource having an amount of maxAmountOfFood has this size
@@ -19,5 +20,18 @@ public struct FoodSettings
     /// <summary>
     /// How long a foodsource is alive
     /// </summary>
-    public float timeAlive { get; set; }
+    public float maxTimeAlive { get; set; }
+    public float minTimeAlive { get; set; }
+
+    public override string ToString()
+    {
+        string s = "";
+        s += "FoodSettings: \n" +
+            "maxAmountOfFood " + maxAmountOfFood + "\n" +
+            "minAmountOfFood " + minAmountOfFood + "\n" +
+            "maxScale " + maxScale + "\n" +
+            "maxTimeAlive " + maxTimeAlive + "\n" +
+            "minTimeAlive " + minTimeAlive + "\n" + "\n";
+        return s;
+    }
 }

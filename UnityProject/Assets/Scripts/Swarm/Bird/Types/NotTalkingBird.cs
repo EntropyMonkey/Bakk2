@@ -1,15 +1,12 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 
-/// <summary>
-/// This kind of bird cannot talk to other birds and needs to rely on watching them and on exploring
-/// the environment on their own
-/// </summary>
 public class NotTalkingBird : Bird
 {
-    public override bool Communicate(Bird other)
+    protected override void InitializeCommunicationSettings()
     {
-        other.AbortCommunication(this);
-        return false;
+        base.InitializeCommunicationSettings();
+
+        communicationSettings.equalityThreshold = 0.1f;
+        communicationSettings.certaintyThreshold = 0;
     }
 }

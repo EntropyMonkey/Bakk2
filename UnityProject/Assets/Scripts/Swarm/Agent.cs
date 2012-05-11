@@ -33,4 +33,6 @@ public abstract class Agent<T> : MonoBehaviour where T : IInformation
     /// </summary>
     /// <param name="information"></param>
     public abstract void GatherInformation(T information);
+
+    protected abstract void InitializeCommunicationSettings();
 }

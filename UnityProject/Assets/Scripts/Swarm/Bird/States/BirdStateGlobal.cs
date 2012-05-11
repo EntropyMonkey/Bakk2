@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using System;
 
 public class BirdStateGlobal : FSMState<Bird>
 {
@@ -28,7 +27,14 @@ public class BirdStateGlobal : FSMState<Bird>
     public override void Enter(Bird owner)
     {
         transform = owner.gameObject.transform;
-        lastVelocity = Vector3.forward * Bird.settings.maxVelocity;
+
+        Vector3 randomDirection = Vector3.zero;
+
+        randomDirection.x = Random.Range(0.0f, 1.0f);
+        randomDirection.y = Random.Range(0.0f, 1.0f);
+        randomDirection.z = Random.Range(0.0f, 1.0f);
+
+        lastVelocity = randomDirection.normalized * Bird.settings.maxVelocity;
     }
 
     public override void Execute(Bird owner)

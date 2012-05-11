@@ -24,4 +24,15 @@ public struct BirdMovementSettings
     /// The weight used to calculate alignment
     /// </summary>
     public float aligningMultiplier { get; set; }
+
+    public override string ToString()
+    {
+        string s = "";
+        s += "movementSettings: \n" +
+            "cohesionMultiplier " + cohesionMultiplier + "\n" +
+            "separatingMultiplier " + separatingMultiplier + "\n" +
+            "targetMultiplier " + targetMultiplier + "\n" +
+            "aligningMultiplier " + aligningMultiplier + "\n" + "\n";
+        return s;
+    }
 }

@@ -11,6 +11,11 @@ using System.Collections.Generic;
 public class BirdInformation : IInformation
 {
     /// <summary>
+    /// keeps track of how much information there is with the same id
+    /// </summary>
+    public static Dictionary<int, int> foodIdCounts;
+
+    /// <summary>
     /// The maximum difference possible when comparing two food type information pieces
     /// This value is linked to circumstances like environment bounds and the maximum amount of food
     /// per food source
@@ -26,7 +31,7 @@ public class BirdInformation : IInformation
     /// </summary>
     public int id;
     /// <summary>
-    /// The id of the food where this info originated
+    /// The id of the food where this info originated - debug purposes
     /// </summary>
     public int foodId;
 
@@ -86,6 +91,11 @@ public class BirdInformation : IInformation
         id = nextFreeId++;
     }
 
+    static BirdInformation()
+    {
+        foodIdCounts = new Dictionary<int, int>();
+    }
+
     /// <summary>
     /// needs to be updated each time the environment's bounds or the maximum amount of food per source
     /// changes
@@ -128,6 +138,15 @@ public class BirdInformation : IInformation
         newInfo.foodId = this.foodId;
         newInfo.foodSourcePosition = this.foodSourcePosition;
         newInfo.foodSourceSize = this.foodSourceSize;
+
+        if (!foodIdCounts.ContainsKey(foodId))
+        {
+            foodIdCounts.Add(foodId, 1);
+        }
+        else
+        {
+            foodIdCounts[foodId] += 1;
+        }
 
         return newInfo;
     }
@@ -196,5 +215,12 @@ public class BirdInformation : IInformation
             "\n foodSourcePosition " + foodSourcePosition +
             "\n foodSourceSize " + foodSourceSize +
             "\n foodId " + foodId);
+    }
+
+    public void OnDestroy()
+    {
+        foodIdCounts[foodId] = foodIdCounts[foodId] - 1;
+        if (foodIdCounts[foodId] == 0)
+            foodIdCounts.Remove(foodId);
     }
 }

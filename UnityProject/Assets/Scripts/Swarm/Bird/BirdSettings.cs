@@ -16,7 +16,7 @@ public struct BirdSettings
     /// <summary>
     /// When the need for eating reaches this value, the bird looks for food and eats
     /// </summary>
-    public float eatingThreshold { get; set; }
+    public float foodThreshold { get; set; }
     /// <summary>
     /// The bird is 100% saturated when it eats this much food
     /// </summary>
@@ -55,11 +55,7 @@ public struct BirdSettings
     /// </summary>
     public float explore_changeDirectionAfter { get; set; }
     /// <summary>
-    /// StateExplore: The minimum time spent in the explore state
-    /// </summary>
-    public float explore_minStateTime { get; set; }
-    /// <summary>
-    /// Change the cohesion multiplier after this number of seconds
+    /// StateExplore: Change the cohesion multiplier after this number of seconds
     /// </summary>
     public float explore_changeCohesionAfter { get; set; }
 
@@ -69,13 +65,35 @@ public struct BirdSettings
     /// </summary>
     public float feed_discreditInfoDistance { get; set; }
     /// <summary>
-    /// StateFeed: change to explore state after this amount of time spent in feed state
+    /// StateFeed: when having spent this much time in the feed state without being saturated, the information
+    /// which has been used is most likely wrong
     /// </summary>
-    public float feed_exploreAfter { get; set; }
+    public float feed_discreditInfoAfterTimeInState { get; set; }
 
     /// <summary>
-    /// Should other birds be ignored
+    /// Should other birds be ignored regarding communication
     /// </summary>
-    public bool ignoreBirds { get; set; }
+    public bool ignoreBirdCommunication { get; set; }
 
+    public override string ToString()
+    {
+        string s = "";
+        s += "BirdSettings:\n" +
+            "maxHops " + maxHops + "\n" +
+            "maxAge " + maxAge + "\n" +
+            "foodThreshold " + foodThreshold + "\n" +
+            "maxFoodCapacity " + maxFoodCapacity + "\n" +
+            "saturationDecreaseIn" + saturationDecreaseIn + "\n" +
+            "informationThreshold" + informationThreshold + "\n" +
+            "informationNeedSaturationPerInfo " + informationNeedSaturationPerInfo + "\n" +
+            "timeout " + timeout + "\n" +
+            "maxVelocity " + maxVelocity + "\n" +
+            "minVelocity " + minVelocity + "\n" +
+            "explore_changeDirectionAfter " + explore_changeDirectionAfter + "\n" +
+            "explore_changeCohesionAfter " + explore_changeCohesionAfter + "\n" +
+            "feed_discreditInfoDistance " + feed_discreditInfoDistance + "\n" +
+            "feed_discreditInfoAfterTimeInState " + feed_discreditInfoAfterTimeInState + "\n" +
+            "ignoreBirdCommunication " + ignoreBirdCommunication + "\n" + "\n";
+        return s;
+    }
 }
